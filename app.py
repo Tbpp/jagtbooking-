@@ -210,11 +210,22 @@ with fane_fuld_oversigt:
             dele = noegle.split("_")
             if len(dele) >= 3:
                 dato_samlet = "-".join(dele[:3])
+                
+                # SIKKER RETTELSE: Vi skiller tallene fuldstændig ad, så tomme felter ALDRIG kan crashe siden
+                omr_id_int = 1
+                try:
+                    if len(dele) > 3 and str(dele[3]).isdigit():
+                        omr_id_int = int(dele[3])
+                    elif str(dele[1]).isdigit():
+                        omr_id_int = int(dele[1])
+                except:
+                    pass
+                
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele if len(dele) > 3 else dele), "Ukendt"),
-                    "Tidspunkt": dele[-1], 
+                    "Område": st.session_state.omraader.get(omr_id_int, "Ukendt"),
+                    "Tidspunkt": str(dele[-1]), 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
                     "Notat": info["notat"]
@@ -225,14 +236,16 @@ with fane_fuld_oversigt:
             st.subheader("❌ Aflys en af dine egne bookinger")
             egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
             if not egne_bookinger.empty:
-                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})")
+                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0] if len(df_alle[df_alle['Nøgle'] == x]['Dato'].values) > 0 else ''}")
                 if st.button("Slet valgte booking", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
                         time.sleep(1.5)
                         st.rerun()
             else:
-                st.sidebar.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
+                st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
+        else:
+            st.info("Der er ikke oprettet nogen aktive bookinger i kalenderen endnu.")
     else:
         st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
 
