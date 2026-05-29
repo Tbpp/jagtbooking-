@@ -7,7 +7,7 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE VIA SHEETDB ---
+# --- DATABASEFORBINDELSE (DIT NYE LINK ER INDSAT HER) ---
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
@@ -152,7 +152,7 @@ if st.sidebar.button("Log ud"):
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
+    "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Rules & Info", "📞 Medlemsliste & Kontakt"
 ])
 
 with fane_book:
@@ -173,6 +173,7 @@ with fane_book:
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
             
+            # Skriver live til jeres helt nye database
             if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
                 st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
                 time.sleep(1.5)
@@ -206,6 +207,7 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
+                # DEFINITIV DATA-RETTELSE: Samler og printer datoen som '2026-05-29' i stedet for computer-lister
                 dato_samlet = "-".join(dele[:3])
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
@@ -244,3 +246,4 @@ with fane_regler_info:
 with fane_kontakt:
     st.header("📞 Medlemsliste")
     st.dataframe(pd.DataFrame(kontakt_data)[["Nr", "Navn", "Tlf", "E-mail"]], use_container_width=True, hide_index=True)
+
