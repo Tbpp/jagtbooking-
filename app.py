@@ -7,8 +7,8 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE TIL DIT NYE REGNEARK (RETTET MED API-ID) ---
-SHEETDB_API_URL = "https://sheetdb.io"
+# --- DATABASEFORBINDELSE TIL SHEETDB ---
+SHEETDB_API_URL = "https://sheetdb.io/api/v1/iuicyzwiwhyb4"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny booking direkte ind i jeres Google Sheet som sikker tekst"""
@@ -181,7 +181,7 @@ with fane_book:
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Tjek overskrifterne i SheetDB.")
+                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at du har skrevet 'notat' med små bogstaver i celle E1 i dit Sheet og genindlæst overskrifterne i SheetDB.")
 
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
@@ -232,7 +232,7 @@ with fane_fuld_oversigt:
                         time.sleep(1.5)
                         st.rerun()
             else:
-                st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
+                st.sidebar.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
     else:
         st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
 
@@ -240,7 +240,7 @@ with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
     * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
+    * **Én jæger pr. område:** Kun én active jæger ad gangen per område.
     * **Bookingbetingelser:** Du kan maksimalt booke en jagt 14 dage frem i tiden.
     """)
 
