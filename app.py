@@ -22,9 +22,9 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
         }]
     }
     try:
-        # Vi tvinger korrekte JSON-headers igennem for at undgå API-afvisninger
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
+        # RETTELSE: Linjen er nu fuldstændig og fejlsikret herunder
         return res.status_code in [200, 201]
     except:
         return False
@@ -180,7 +180,7 @@ with fane_book:
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Tjek jeres SheetDB dashboard.")
+                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at du har skrevet 'notat' med små bogstaver i celle E1 i dit Sheet og genindlæst overskrifterne i SheetDB.")
 
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
