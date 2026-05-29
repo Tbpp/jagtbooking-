@@ -154,7 +154,7 @@ if st.sidebar.button("Log ud"):
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
+    "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Contact"
 ])
 
 with fane_book:
@@ -239,7 +239,7 @@ with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
     * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én active jæger ad gangen per område.
+    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
     * **Bookingbetingelser:** Du kan maksimalt booke en jagt 14 dage frem i tiden.
     """)
 
