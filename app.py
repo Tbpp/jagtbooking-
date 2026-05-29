@@ -7,18 +7,18 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE VIA SHEETDB (DIT UNIKKE LINK INDSAT) ---
+# --- DATABASEFORBINDELSE VIA SHEETDB ---
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny booking direkte ind i jeres Google Sheet"""
     payload = {
         "data": [{
-            "noegle": noegle,
-            "jaeger_id": jaeger_id,
-            "navn": navn,
-            "tidspunkt": tidspunkt,
-            "notat": notat
+            "noegle": str(noegle).strip(),
+            "jaeger_id": int(jaeger_id),
+            "navn": str(navn).strip(),
+            "tidspunkt": str(tidspunkt).strip(),
+            "notat": str(notat).strip()
         }]
     }
     try:
@@ -38,20 +38,22 @@ def aflyst_i_google_sheet(noegle):
 def hent_aktuelle_bookinger():
     """Henter alle bookinger lynhurtigt fra Google Sheet via SheetDB API'en"""
     try:
-        # Cache-buster sikrer, at vi altid henter helt friske data live uden forsinkelse
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
         if res.status_code == 200:
             data = res.json()
-            for række in data:
-                if "noegle" in række and række["noegle"] and str(række["noegle"]).strip() != "":
-                    n_noegle = str(række["noegle"]).strip()
-                    bookinger_dict[n_noegle] = {
-                        "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] else 0,
-                        "navn": str(række["navn"]) if "navn" in række else "Ukendt",
-                        "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen 🌅",
-                        "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
-                    }
+            if isinstance(data, dict) and "error" in data:
+                return {}
+            if isinstance(data, list):
+                for række in data:
+                    if "noegle" in række and række["noegle"] and str(række["noegle"]).strip() != "":
+                        n_noegle = str(række["noegle"]).strip()
+                        bookinger_dict[n_noegle] = {
+                            "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] else 0,
+                            "navn": str(række["navn"]) if "navn" in række else "Ukendt",
+                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen 🌅",
+                            "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
+                        }
         return bookinger_dict
     except:
         return {}
@@ -171,13 +173,12 @@ with fane_book:
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
             
-            # Vi skriver direkte til det rigtige Google Sheet via dit nye SheetDB link
             if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
                 st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(1.0)
+                time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at du har skrevet 'notat' med små bogstaver i celle E1 i dit Sheet.")
+                st.error("❌ Fejl: Kunne ikke forbinde til databasen.")
 
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
@@ -205,12 +206,13 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                dato_samlet = f"{dele[0]}"
+                # RETTELSE: Samler og læser datoen fejlfrit nu
+                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele[1]), "Ukendt"),
-                    "Tidspunkt": dele[2], 
+                    "Område": st.session_state.omraader.get(int(dele[3] if len(dele) > 3 else dele[1]), "Ukendt"),
+                    "Tidspunkt": dele[-1], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
                     "Notat": info["notat"]
@@ -225,7 +227,7 @@ with fane_fuld_oversigt:
                 if st.button("Slet valgte booking", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
-                        time.sleep(1.0)
+                        time.sleep(1.5)
                         st.rerun()
             else:
                 st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
