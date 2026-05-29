@@ -10,7 +10,7 @@ st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", 
 baggrunds_css = """
 <style>
 [data-testid="stAppViewContainer"] {
-    background-image: url("https://www.shutterstock.com/shutterstock/photos/2772221089/display_1500/stock-photo-a-deer-in-the-mountains-in-winter-with-falling-snow-close-up-of-red-deer-against-a-snowy-backdrop-2772221089.jpg");
+    background-image: url("");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
