@@ -170,161 +170,81 @@ with fane_tjek_dato:
     tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=datetime.today().date(), key="tjek_dato_valg")
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
     
-    st.write(f"### Status for d. {tjek_dato_streng}:")
-    
-    fundet_booking = False
+    data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
         morgen_noegle = f"{tjek_dato_streng}_{omr_id}_Morgen 🌅"
         aften_noegle = f"{tjek_dato_streng}_{omr_id}_Aften 🌇"
         
+        morgen_status = "Ledig 🟢"
+        aften_status = "Ledig 🟢"
+        
         if morgen_noegle in st.session_state.bookinger:
-            b = st.session_state.bookinger[morgen_noegle]
-            st.info(f"🌅 **Morgen**: {omr_navn} er optaget af Nr. {b['jaeger_id']} - {b['navn']} *(Besked: {b['notat']})*")
-            fundet_booking = True
-        else:
-            st.write(f"🌅 **Morgen**: {omr_navn} er 🟢 **Ledig**")
-            
+            morgen_status = f"🔴 {st.session_state.bookinger[morgen_noegle]['navn']} ({st.session_state.bookinger[morgen_noegle]['notat']})"
         if aften_noegle in st.session_state.bookinger:
-            b = st.session_state.bookinger[aften_noegle]
-            st.warning(f"🌇 **Aften**: {omr_navn} er optaget af Nr. {b['jaeger_id']} - {b['navn']} *(Besked: {b['notat']})*")
-            fundet_booking = True
-        else:
-            st.write(f"🌇 **Aften**: {omr_navn} er 🟢 **Ledig**")
+            aften_status = f"🔴 {st.session_state.bookinger[aften_noegle]['navn']} ({st.session_state.bookinger[aften_noegle]['notat']})"
             
-        st.write("---")
-            
-    if not fundet_booking:
-        st.success("🌲 Alle områder er helt ledige denne dag!")
+        data_tjek_liste.append({"Jagtområde": omr_navn, "Morgen 🌅": morgen_status, "Aften 🌇": aften_status})
+        
+    df_tjek = pd.DataFrame(data_tjek_liste)
+    st.dataframe(df_tjek, use_container_width=True, hide_index=True)
 
 # --- FANE 3: DEN FULDE KALENDEROVERSIGT & AFLYSNING ---
 with fane_fuld_oversigt:
-    st.header("Komplet oversigt over alle reservationer")
-    
-    if not st.session_state.bookinger:
-        st.info("Der er i øjeblikket ingen aktive bookinger i systemet.")
-    else:
-        tabel_data = []
-        for noegle, info in list(st.session_state.bookinger.items()):
-            dato_del, omraade_id_del, tid_del = noegle.split("_")
-            
-            omraade_id_int = int(omraade_id_del)
-            if omraade_id_int in st.session_state.omraader:
-                omraade_navn = st.session_state.omraader[omraade_id_int]
-            else:
-                omraade_navn = f"Gammelt område (ID: {omraade_id_int})"
-                
-            tabel_data.append({
-                "Nøgle": noegle,
-                "Dato": dato_del,
-                "Tidspunkt": tid_del,
-                "Jagtområde": omraade_navn,
-                "Jæger": f"Nr. {info['jaeger_id']} - {info['navn']}",
-                "Notat": info["notat"]
-            })
+    st.header("Alle aktive bookinger i skyen")
+    if st.session_state.bookinger:
+        aktive_bookinger_liste = []
+        for noegle, info in st.session_state.bookinger.items():
+            dele = noegle.split("_")
+            if len(dele) >= 3:
+                aktive_bookinger_liste.append({
+                    "Nøgle": noegle, 
+                    "Dato": dele[0], 
+                    "Område": st.session_state.omraader.get(int(dele[1]), "Ukendt"),
+                    "Tidspunkt": dele[2], 
+                    "Jæger": info["navn"], 
+                    "Jæger_ID": info["jaeger_id"], 
+                    "Notat": info["notat"]
+                })
         
-        if tabel_data:
-            df = pd.DataFrame(tabel_data).sort_values(by=["Dato", "Tidspunkt"])
-            st.dataframe(df.drop(columns=["Nøgle"]), use_container_width=True, hide_index=True)
+        if aktive_bookinger_liste:
+            df_alle = pd.DataFrame(aktive_bookinger_liste).sort_values(by=["Dato", "Tidspunkt"])
+            st.dataframe(df_alle[["Dato", "Område", "Tidspunkt", "Jæger", "Notat"]], use_container_width=True, hide_index=True)
             
-            st.write("---")
-            st.subheader("🗑️ Vil du aflyse en booking?")
+            st.subheader("❌ Aflys en af dine egne bookinger")
+            egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
             
-            slet_valg = st.selectbox(
-                "Vælg den booking du vil fjerne:",
-                options=tabel_data,
-                format_func=lambda x: f"{x['Dato']} ({x['Tidspunkt'].lower()}) - {x['Jagtområde']} [{x['Jæger']}]"
-            )
-            
-            slet_id_validering = st.text_input("Indtast dit medlemsnummer for at godkende aflysning:", type="password", key="slet_pin")
-            
-            if st.button("Slet valgte booking", type="secondary"):
-                korrekt_id = str(st.session_state.bookinger[slet_valg["Nøgle"]]["jaeger_id"])
+            if not egne_bookinger.empty:
+                aflys_valg = st.selectbox(
+                    "Vælg den booking du vil slette:", 
+                    options=egne_bookinger["Nøgle"].tolist(), 
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
+                )
                 
-                if slet_id_validering.strip() == korrekt_id:
-                    del st.session_state.bookinger[slet_valg["Nøgle"]]
-                    st.success("📌 Bookingen er blevet slettet!")
+                if st.button("Slet valgte booking", type="secondary"):
+                    # Slet rækken og gen-gem det opdaterede regneark uden rækken
+                    opdaterede_rækker = []
+                    for k, v in st.session_state.bookinger.items():
+                        if k != aflys_valg:
+                            opdaterede_rækker.append({"noegle": k, "jaeger_id": v["jaeger_id"], "navn": v["navn"], "tidspunkt": v["tidspunkt"], "notat": v["notat"]})
+                    
+                    df_til_gem = pd.DataFrame(opdaterede_rækker) if opdaterede_rækker else pd.DataFrame(columns=["noegle", "jaeger_id", "navn", "tidspunkt", "notat"])
+                    conn.update(spreadsheet=GOOGLE_SHEET_URL, data=df_til_gem)
+                    st.success("Reserveringen er blevet slettet fra Google Sheets.")
                     st.rerun()
-                else:
-                    st.error("❌ Forkert medlemsnummer. Du kan kun slette dine egne bookinger.")
-        else:
-            st.info("Der er i øjeblikket ingen aktive bookinger i systemet.")
+            else:
+                st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
+    else:
+        st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
 
-
-# --- FANE 4: PRISER, REGLER & INFO ---
+# --- FANE 4 & 5 (REGLER & KONTAKT) ---
 with fane_regler_info:
-    st.header("💰 Vildtpriser")
-    kol1, kol2 = st.columns(2)
-    with kol1:
-        st.write("""
-        * **Buk:** 500 kr.
-        * **Rå:** 400 kr.
-        * **Lam:** 300 kr.
-        * **Stor hjort:** 3000 kr. *inkl. trofæ*
-        * **Spidshjort:** 1200 kr.
-        """)
-    with kol2:
-        st.write("""
-        * **Hind:** 1000 kr.
-        * **kalv:** 800 kr.
-        * **Dåhjort, større end spidshjort:** 2500 kr. *inkl. trofæ*
-        * **Spidshjort:** 1000 kr.
-        * **Då:** 800 kr.
-        * **Kalv:** 600 kr.
-        """)
-    st.write("**Alt andet vildt:** 0 kr.")
-    st.markdown("<span style='color:red; font-weight:bold;'>Alt nedlagt vildt skal rapporteres til formanden.</span>", unsafe_allow_html=True)
-    st.markdown("<span style='color:red; font-weight:bold;'>Alle skud skal rapporteres til formanden. Dog ikke haglskud på frijagter</span>", unsafe_allow_html=True)
-    
-    st.write("---")
-    st.header("📅 Arbejdsdage")
-    st.write("""
-    Da der bliver brug for en ekstra indsats ang. arbejdsdag det første år, er vi blevet enige om nedenstående.
-    * Der bliver **5 arbejdsdage** inden udgang af august.
-    * **Datoer for arbejdsdage:** 13/6 – 21/6 – 1/8 – 16/8 – 29/8
+    st.header("📜 Praktisk information & Jagtregler")
+    st.markdown("""
+    * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
+    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
+    * **Bookingbetingelser:** Du kan maksimalt booke en jagt 14 dage frem i tiden.
     """)
-    st.caption("*Muligvis kan arbejdsdagene også placeres i september, hvis det besluttes ikke at drive jagt på kronkalv i september, dette bestemmes efter samtale med nabokonsortier.*")
-    st.write("""
-    * Man skal **min. deltage på 3 ud af 5 dage**.
-    * Ved udeblivelse af mere end 2 arbejdsdage betales af medlem **200kr. pr. dag**.
-    * Ved udeblivelse af alle 5 arbejdsdage betales af medlem **1200kr.**
-    """)
-    
-    st.write("---")
-# --- FANE 5: MEDLEMSLISTE & KONTAKT ---
+
 with fane_kontakt:
-    st.header("📞 Anpartsliste & Kontaktoplysninger")
-    st.write("Her er den samlede medlemsliste med kontaktinformationer:")
-    
-    kontakt_data = [
-        {"Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
-        {"Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
-        {"Navn": "Thomas Jøns", "Tlf": "42 17 78 07", "E-mail": "cuba_joens@hotmail.com"},
-        {"Navn": "Jørgen Thomsen", "Tlf": "49 40 50 64", "E-mail": "thomsen777@gmail.com"},
-        {"Navn": "Per Eli Løfqvist", "Tlf": "30 50 32 12", "E-mail": "loefqvist@gmail.com"},
-        {"Navn": "Peter Aaen", "Tlf": "20 92 34 14", "E-mail": "peter.aaen46@gmail.com"},
-        {"Navn": "Morten Ransborg", "Tlf": "20 18 95 91", "E-mail": "morten@ransborg.net"},
-        {"Navn": "Steffen Carlsen", "Tlf": "53 55 44 94", "E-mail": "steffencarlsen86@gmail.com"},
-        {"Navn": "Morten Mæng Pedersen", "Tlf": "28 91 69 15", "E-mail": "mortenmaeng@hotmail.com"},
-        {"Navn": "Ole Libak Christensen", "Tlf": "31 50 35 55", "E-mail": "ole.libak@gmail.com"},
-        {"Navn": "Christian Ringstrøm Andersen", "Tlf": "61 26 17 38", "E-mail": "Christian.ringstroem@gmail.com"},
-        {"Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
-        {"Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
-        {"Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
-        {"Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
-        {"Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
-        {"Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
-        {"Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
-        {"Navn": "Per Behrmann", "Tlf": "50 58 17 41", "E-mail": "perbehrmann@hotmail.com"},
-        {"Navn": "Tonni Bastrup Pedersen", "Tlf": "23 47 74 02", "E-mail": "tonnibastrup@gmail.com"},
-        {"Navn": "Peter Michael Nielsen", "Tlf": "23 72 62 25", "E-mail": "pmn@bbnpost.dk"},
-        {"Navn": "Simon Noer Burkal", "Tlf": "28 74 70 45", "E-mail": "Simon@burkal.dk"},
-        {"Navn": "Carsten Bjerregaard", "Tlf": "30 13 10 26", "E-mail": "Cbj.bjerregaard@gmail.com"},
-        {"Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
-        {"Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
-    ]
-    
-    df_kontakt = pd.DataFrame(kontakt_data)
-    st.dataframe(df_kontakt, use_container_width=True, hide_index=True)
-    
-    st.write("---")
-    st.caption("Linket til denne app: https://streamlit.app")
+    st.header("📞 Medlemsliste")
+    st.dataframe(pd.DataFrame(kontakt_data)[["Nr", "Navn", "Tlf", "E-mail"]], use_container_width=True, hide_index=True)
