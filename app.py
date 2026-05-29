@@ -182,9 +182,19 @@ with fane_book:
     st.header("Opret ny jagtreservation")
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
     
-    valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
+    valgt_omraade_id = st.selectbox(
+        "Vælg jagtområde:", 
+        options=list(st.session_state.omraader.keys()), 
+        format_func=lambda x: st.session_state.omraader[x]
+    )
+    
     idag = datetime.today().date()
-    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
+    valgt_dato = st.date_input(
+        "Vælg dato for jagten (Maks 14 dage frem):", 
+        min_value=idag, 
+        max_value=idag + timedelta(days=14), 
+        key="dato_valg"
+    )
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     valgt_tidspunkt = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
@@ -197,31 +207,20 @@ with fane_book:
             st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
+            # Vi samler jægerens info med lodrette streger, så det fylder præcis ét tekstfelt i din Form
+            data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             
-            nye_rækker = []
-            for k, v in st.session_state.bookinger.items():
-                nye_rækker.append({"noegle": k, "jaeger_id": v["jaeger_id"], "navn": v["navn"], "tidspunkt": v["tidspunkt"], "notat": v["notat"]})
-            
-            nye_rækker.append({
-                "noegle": booking_noegle,
-                "jaeger_id": st.session_state.bruger_info["Nr"],
-                "navn": st.session_state.bruger_info["Navn"],
-                "tidspunkt": valgt_tidspunkt,
-                "notat": nyt_notat
-            })
-            
-            df_til_gem = pd.DataFrame(nye_rækker)
-            conn.update(spreadsheet=GOOGLE_SHEET_URL, data=df_til_gem)
-            
-            st.success(f"✅ Godkendt! Booking gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-            st.rerun()
-
+            if send_til_google_form(booking_noegle, "BOOK", data_format):
+                st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
+                st.rerun()
 
 # --- FANE 2: TJEK EN SPECIFIK DATO ---
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
     tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=datetime.today().date(), key="tjek_dato_valg")
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
+    
+    st.write(f"### Status for d. {tjek_dato_streng}:")
     
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
@@ -274,16 +273,11 @@ with fane_fuld_oversigt:
                 )
                 
                 if st.button("Slet valgte booking", type="secondary"):
-                    # Slet rækken og gen-gem det opdaterede regneark uden rækken
-                    opdaterede_rækker = []
-                    for k, v in st.session_state.bookinger.items():
-                        if k != aflys_valg:
-                            opdaterede_rækker.append({"noegle": k, "jaeger_id": v["jaeger_id"], "navn": v["navn"], "tidspunkt": v["tidspunkt"], "notat": v["notat"]})
-                    
-                    df_til_gem = pd.DataFrame(opdaterede_rækker) if opdaterede_rækker else pd.DataFrame(columns=["noegle", "jaeger_id", "navn", "tidspunkt", "notat"])
-                    conn.update(spreadsheet=GOOGLE_SHEET_URL, data=df_til_gem)
-                    st.success("Reserveringen er blevet slettet fra Google Sheets.")
-                    st.rerun()
+                    # Vi sender en afbestillingslinje afsted til din Google Form
+                    data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
+                    if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
+                        st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
+                        st.rerun()
             else:
                 st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
     else:
