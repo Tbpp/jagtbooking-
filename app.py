@@ -32,10 +32,12 @@ def hent_aktuelle_bookinger():
                 noegle_col = [c for c in df.columns if 'noegle' in c.lower()]
                 handling_col = [c for c in df.columns if 'handling' in c.lower()]
                 data_col = [c for c in df.columns if 'data' in c.lower()]
+                
                 if noegle_col and handling_col and data_col:
                     noegle = str(row[noegle_col[0]]).strip()
                     handling = str(row[handling_col[0]]).strip().upper()
                     data_felt = str(row[data_col[0]]).strip()
+                    
                     if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan":
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
