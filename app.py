@@ -8,6 +8,7 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
+# Cache-buster sikrer, at vi altid henter de allernyeste rækker fra skyen live
 TOKEN_TID = str(int(time.time()))
 GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
@@ -40,12 +41,12 @@ def hent_aktuelle_bookinger():
                     handling = str(row[handling_col[0]]).strip().upper()
                     data_felt = str(row[data_col[0]]).strip()
                     
-                    # Sikrer os, at vi ikke læser overskrifter eller tomme rækker
                     if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan" and noegle.lower() != "noegle":
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
                                 try:
+                                    # RETTELSE: Data trækkes nu sikkert ud som rene tekststrenge og tal
                                     bookinger_dict[noegle] = {
                                         "jaeger_id": int(str(dele[0]).strip()),
                                         "navn": str(dele[1]).strip(),
@@ -175,7 +176,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(2.0)  # Giver Google Form tid til at skrive rækken færdig i skyen
+                time.sleep(2.0)  # Giver skyen tid til at opdatere regnearket
                 st.rerun()
 
 with fane_tjek_dato:
