@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# 2. Database med KUN nummer og navn fra anpartslisten
+# 2. Database med KUN nummer og navn fra anpartslisten (Brugt til dropdown-menuer)
 if "jaegere" not in st.session_state:
     st.session_state.jaegere = {
         1: "Lasse Lichon Hesthaven", 2: "Alexander Knudsen", 3: "Thomas Jøns",
@@ -41,12 +41,13 @@ if "bookinger" not in st.session_state:
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
-# Opretter faner på siden
-fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
+# Opretter faner på siden - Nu med den nye fane til kontaktlisten
+fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", 
     "🔍 Tjek Specifik Dato", 
     "📅 Den Fulde Kalenderoversigt & Aflysning",
-    "📜 Priser, Regler & Info"
+    "📜 Priser, Regler & Info",
+    "📞 Medlemsliste & Kontakt"
 ])
 
 
@@ -70,7 +71,7 @@ with fane_book:
     
     # Konfiguration af 14 dages begrænsning
     idag = datetime.today().date()
-    fjorten_dage_frem = idag + timedelta(days=14)
+    fjorten_dage_frem = idg = idag + timedelta(days=14)
     
     valgt_dato = st.date_input(
         "Vælg dato for jagten (Maks 14 dage frem):", 
@@ -190,10 +191,9 @@ with fane_fuld_oversigt:
             st.info("Der er i øjeblikket ingen aktive bookinger i systemet.")
 
 
-# --- FANE 4: PRISER, REGLER & INFO (OPDATERET FRA BILLEDE) ---
+# --- FANE 4: PRISER, REGLER & INFO ---
 with fane_regler_info:
     st.header("💰 Vildtpriser")
-    
     kol1, kol2 = st.columns(2)
     with kol1:
         st.write("""
@@ -212,10 +212,7 @@ with fane_regler_info:
         * **Då:** 800 kr.
         * **Kalv:** 600 kr.
         """)
-    
     st.write("**Alt andet vildt:** 0 kr.")
-    
-    # Rapportering i rød skrift
     st.markdown("<span style='color:red; font-weight:bold;'>Alt nedlagt vildt skal rapporteres til formanden.</span>", unsafe_allow_html=True)
     st.markdown("<span style='color:red; font-weight:bold;'>Alle skud skal rapporteres til formanden. Dog ikke haglskud på frijagter</span>", unsafe_allow_html=True)
     
@@ -227,11 +224,7 @@ with fane_regler_info:
     * **Datoer for arbejdsdage:** 13/6 – 21/6 – 1/8 – 16/8 – 29/8
     """)
     st.caption("*Muligvis kan arbejdsdagene også placeres i september, hvis det besluttes ikke at drive jagt på kronkalv i september, dette bestemmes efter samtale med nabokonsortier.*")
-    
     st.write("""
     * Man skal **min. deltage på 3 ud af 5 dage**.
     * Ved udeblivelse af mere end 2 arbejdsdage betales af medlem **200kr. pr. dag**.
     * Ved udeblivelse af alle 5 arbejdsdage betales af medlem **1200kr.**
-    """)
-    
-    st.write("---")
