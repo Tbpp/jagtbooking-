@@ -8,7 +8,6 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
-# Vi bruger et tidsstempel (time.time) til at tvinge Google til altid at sende friske data uden cache
 TOKEN_TID = str(int(time.time()))
 GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
@@ -41,17 +40,20 @@ def hent_aktuelle_bookinger():
                     handling = str(row[handling_col[0]]).strip().upper()
                     data_felt = str(row[data_col[0]]).strip()
                     
-                    if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan":
+                    # Sikrer os, at vi ikke læser overskrifter eller tomme rækker
+                    if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan" and noegle.lower() != "noegle":
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
-                                # HER ER RETTELSEN: Vi tager fat i de specifikke elementer i listen ved hjælp af [0], [1] osv.
-                                bookinger_dict[noegle] = {
-                                    "jaeger_id": int(str(dele[0]).strip()),
-                                    "navn": str(dele[1]).strip(),
-                                    "tidspunkt": str(dele[2]).strip(),
-                                    "notat": str(dele[3]).strip()
-                                }
+                                try:
+                                    bookinger_dict[noegle] = {
+                                        "jaeger_id": int(str(dele[0]).strip()),
+                                        "navn": str(dele[1]).strip(),
+                                        "tidspunkt": str(dele[2]).strip(),
+                                        "notat": str(dele[3]).strip()
+                                    }
+                                except:
+                                    continue
                         elif handling == "AFBESTIL":
                             if noegle in bookinger_dict:
                                 del bookinger_dict[noegle]
@@ -173,7 +175,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(1.5)  # Giver Google et øjeblik til at skrive linjen færdig i skyen
+                time.sleep(2.0)  # Giver Google Form tid til at skrive rækken færdig i skyen
                 st.rerun()
 
 with fane_tjek_dato:
@@ -202,8 +204,7 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                # Genskaber datoen korrekt i formatet YYYY-MM-DD
-                dato_samlet = f"{dele[0]}_{dele[1]}_{dele[2]}".split("_")[0]
+                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
@@ -224,7 +225,7 @@ with fane_fuld_oversigt:
                     data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
                     if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
-                        time.sleep(1.5)
+                        time.sleep(2.0)
                         st.rerun()
             else:
                 st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
