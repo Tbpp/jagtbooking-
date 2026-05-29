@@ -239,7 +239,7 @@ with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
     * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
+    * **Én jæger pr. område:** Kun én active jæger ad gangen per område.
     * **Bookingbetingelser:** Du kan maksimalt booke en jagt 14 dage frem i tiden.
     """)
 
