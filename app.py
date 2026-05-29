@@ -29,14 +29,12 @@ def send_til_google_form(noegle, handling, data_streng):
 def hent_aktuelle_bookinger():
     """Henter alle gyldige bookinger live fra dit Google Sheet og rydder op i aflysninger"""
     try:
-        # Læs csv-data direkte fra det offentlige link
         df = pd.read_csv(GOOGLE_SHEET_URL)
         bookinger_dict = {}
         
         if not df.empty:
-            # Vi sorterer kronologisk, så nyere handlinger overskriver ældre (f.eks. hvis man booker, aflyser, og booker igen)
             for _, row in df.iterrows():
-                # Tilpas kolonnenavne alt efter om Google kalder dem præcis hvad du skrev eller ej
+                # Find kolonnerne uanset præcis stavemåde
                 noegle_col = [c for c in df.columns if 'noegle' in c.lower()]
                 handling_col = [c for c in df.columns if 'handling' in c.lower()]
                 data_col = [c for c in df.columns if 'data' in c.lower()]
@@ -46,7 +44,7 @@ def hent_aktuelle_bookinger():
                     handling = str(row[handling_col[0]]).strip().upper()
                     data_felt = str(row[data_col[0]]).strip()
                     
-                    if pd.notna(row[noegle_col[0]]) and noegle != "":
+                    if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan":
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
@@ -57,20 +55,11 @@ def hent_aktuelle_bookinger():
                                     "notat": dele[3]
                                 }
                         elif handling == "AFBESTIL":
-                            # Hvis handlingen er afbestil, fjerner vi bookingen fra kalenderen
-                            if noegle in bookinger_dict:
-                                del bookinger_dict[noegle] = {
-                                    "jaeger_id": int(dele[0]),
-                                    "navn": dele[1],
-                                    "tidspunkt": dele[2],
-                                    "notat": dele[3]
-                                }
-                        elif handling == "AFBESTIL":
+                            # FEJLEN ER RETTET HER: Sletter korrekt uden brug af lighedstegn
                             if noegle in bookinger_dict:
                                 del bookinger_dict[noegle]
         return bookinger_dict
     except Exception as e:
-        # Hvis arket er helt tomt eller ikke oprettet endnu, returneres en tom database
         return {}
 
 # Hent altid de nyeste data live fra skyen ved hver opdatering
@@ -176,25 +165,14 @@ fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = 
     "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
 
-
 # --- FANE 1: OPRET BOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
     
-    valgt_omraade_id = st.selectbox(
-        "Vælg jagtområde:", 
-        options=list(st.session_state.omraader.keys()), 
-        format_func=lambda x: st.session_state.omraader[x]
-    )
-    
+    valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
-    valgt_dato = st.date_input(
-        "Vælg dato for jagten (Maks 14 dage frem):", 
-        min_value=idag, 
-        max_value=idag + timedelta(days=14), 
-        key="dato_valg"
-    )
+    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     valgt_tidspunkt = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
@@ -207,7 +185,6 @@ with fane_book:
             st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
-            # Vi samler jægerens info med lodrette streger, så det fylder præcis ét tekstfelt i din Form
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             
             if send_til_google_form(booking_noegle, "BOOK", data_format):
