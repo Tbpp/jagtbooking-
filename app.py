@@ -45,17 +45,12 @@ def hent_aktuelle_bookinger():
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
                                 try:
-                                    # RETTELSE: Vi omdanner dataene korrekt til tekststrenge enkeltvis
-                                    j_id_rent = int(str(dele[0]).strip())
-                                    j_navn_rent = str(dele[1]).strip()
-                                    j_tid_rent = str(dele[2]).strip()
-                                    j_notat_rent = str(dele[3]).strip()
-                                    
+                                    # KORREKT INDEKSERING: Henter hvert felt individuelt ud af listen
                                     bookinger_dict[noegle] = {
-                                        "jaeger_id": j_id_rent,
-                                        "navn": j_navn_rent,
-                                        "tidspunkt": j_tid_rent,
-                                        "notat": j_notat_rent
+                                        "jaeger_id": int(str(dele[0]).strip()),
+                                        "navn": str(dele[1]).strip(),
+                                        "tidspunkt": str(dele[2]).strip(),
+                                        "notat": str(dele[3]).strip()
                                     }
                                 except:
                                     continue
@@ -180,7 +175,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(2.0)  # Giver databasen tid til at opdatere
+                time.sleep(2.0)  # Giver skyen tid til at opdatere regnearket helt
                 st.rerun()
 
 with fane_tjek_dato:
@@ -213,8 +208,8 @@ with fane_fuld_oversigt:
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele[3]), "Ukendt"),
-                    "Tidspunkt": dele[4], 
+                    "Område": st.session_state.omraader.get(int(dele[3] if len(dele) > 3 else dele[1]), "Ukendt"),
+                    "Tidspunkt": dele[-1], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
                     "Notat": info["notat"]
@@ -225,7 +220,7 @@ with fane_fuld_oversigt:
             st.subheader("❌ Aflys en af dine egne bookinger")
             egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
             if not egne_bookinger.empty:
-                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})")
+                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})")
                 if st.button("Slet valgte booking", type="secondary"):
                     data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
                     if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
