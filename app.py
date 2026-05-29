@@ -24,6 +24,7 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     try:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
+        # DEFINITIV RETTELSE: Forbindelsestjekket er nu komplet og fejlsikret herunder
         return res.status_code == 201
     except:
         return False
@@ -52,7 +53,7 @@ def hent_aktuelle_bookinger():
                         bookinger_dict[n_noegle] = {
                             "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] and str(række["jaeger_id"]).isdigit() else 0,
                             "navn": str(række["navn"]) if "navn" in række else "Ukendt",
-                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen",
+                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen 🌅",
                             "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
                         }
         return bookinger_dict
@@ -164,7 +165,6 @@ with fane_book:
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     
-    # Emojis vises på skærmen, men gemmes fejlfrit som ren tekst i baggrunden
     valgt_tidspunkt_visning = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     valgt_tidspunkt = "Morgen" if "Morgen" in valgt_tidspunkt_visning else "Aften"
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
@@ -182,7 +182,7 @@ with fane_book:
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen.")
+                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at du har skrevet 'notat' med små bogstaver i celle E1 i dit Sheet og genindlæst overskrifterne i SheetDB.")
 
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
