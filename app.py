@@ -1,23 +1,48 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+from streamlit_gsheets import GSheetsConnection
 
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- KODE TIL BAGGRUNDSBILLEDE (NY) ---
-# Du kan udskifte linket i 'url(...)' herunder med dit eget billedlink, hvis du vil have et andet billede på.
+# --- FORBINDELSE TIL GOOGLE SHEETS (DIT ARK) ---
+GOOGLE_SHEET_URL = "https://google.com"
+
+# Opret forbindelse til Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# Funktion til altid at hente de nyeste bookinger live fra skyen
+def hent_aktuelle_bookinger():
+    try:
+        df = conn.read(spreadsheet=GOOGLE_SHEET_URL, ttl="0d") # ttl="0d" sikrer, at den ALDRIG cacher gamle data
+        bookinger_dict = {}
+        if not df.empty:
+            for _, row in df.iterrows():
+                if 'noegle' in row and pd.notna(row['noegle']) and str(row['noegle']).strip() != "":
+                    bookinger_dict[str(row['noegle'])] = {
+                        "jaeger_id": int(row['jaeger_id']) if 'jaeger_id' in row and pd.notna(row['jaeger_id']) else 0,
+                        "navn": str(row['navn']) if 'navn' in row else "Ukendt",
+                        "tidspunkt": str(row['tidspunkt']) if 'tidspunkt' in row else "Morgen 🌅",
+                        "notat": str(row['notat']) if 'notat' in row and pd.notna(row['notat']) and str(row['notat']).strip() != "" else "-"
+                    }
+        return bookinger_dict
+    except Exception as e:
+        return {}
+
+# Hent altid databasen når siden opdateres
+st.session_state.bookinger = hent_aktuelle_bookinger()
+
+# --- STYLING OG BAGGRUND ---
 baggrunds_css = """
 <style>
 [data-testid="stAppViewContainer"] {
-    background-image: url("");
+    background-image: url("https://unsplash.com");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     background-attachment: fixed;
 }
-
-/* Gør boksene en lille smule gennemsigtige, så teksten er nemmere at læse oven på billedet */
 [data-testid="stHeader"] {
     background: rgba(0,0,0,0);
 }
@@ -27,10 +52,12 @@ baggrunds_css = """
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
 }
+h1, h2, h3, p, label {
+    color: #1c2e15;
+}
 </style>
 """
 st.markdown(baggrunds_css, unsafe_allow_html=True)
-
 
 # Medlemsliste med Kontaktoplysninger
 kontakt_data = [
@@ -61,30 +88,21 @@ kontakt_data = [
     {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
 ]
 
-if "jaegere" not in st.session_state:
-    st.session_state.jaegere = {item["Nr"]: item["Navn"] for item in kontakt_data}
-
 st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
     6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
 }
-
-if "bookinger" not in st.session_state:
-    st.session_state.bookinger = {}
 
 if "logget_ind" not in st.session_state:
     st.session_state.logget_ind = False
 if "bruger_info" not in st.session_state:
     st.session_state.bruger_info = None
 
-
 # --- AUTOMATISK LOGIN-KONTROL ---
 if not st.session_state.logget_ind:
     st.title("🔒 Ravnkjærgaard - Adgangskontrol")
     st.write("Indtast dit registrerede telefonnummer. Systemet logger dig ind automatisk.")
-    
     indtastet_tlf = st.text_input("Telefonnummer (8 tal):", placeholder="Skriv dit tlf. nr. her", key="login_input")
-    
     renset_indtastet = indtastet_tlf.replace(" ", "").strip()
     
     if len(renset_indtastet) == 8:
@@ -93,16 +111,13 @@ if not st.session_state.logget_ind:
             if renset_indtastet == medlem["Tlf"].replace(" ", "").strip():
                 fundet_bruger = medlem
                 break
-                
         if fundet_bruger:
             st.session_state.logget_ind = True
             st.session_state.bruger_info = fundet_bruger
             st.rerun()
         else:
             st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Tjek indtastningen.")
-            
     st.stop()
-
 
 # --- SIDEBAR ---
 st.sidebar.write(f"Logget ind som:\n**{st.session_state.bruger_info['Navn']}**")
@@ -111,40 +126,22 @@ if st.sidebar.button("Log ud"):
     st.session_state.bruger_info = None
     st.rerun()
 
-
-# --- HOVEDSIDE (LOGGET IND) ---
+# --- HOVEDSIDE ---
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
-st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Booking", 
-    "🔍 Tjek Specifik Dato", 
-    "📅 Den Fulde Kalenderoversigt & Aflysning",
-    "📜 Priser, Regler & Info",
-    "📞 Medlemsliste & Kontakt"
+    "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
-
 
 # --- FANE 1: OPRET BOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
-    st.success(f"✍️ Du opretter lige nu en booking for: **{st.session_state.bruger_info['Navn']}**")
+    st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
     
-    valgt_omraade_id = st.selectbox(
-        "Vælg jagtområde:", 
-        options=list(st.session_state.omraader.keys()),
-        format_func=lambda x: st.session_state.omraader[x]
-    )
-    
+    valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
-    valgt_dato = st.date_input(
-        "Vælg dato for jagten (Maks 14 dage frem):", 
-        min_value=idag,
-        max_value=idag + timedelta(days=14),
-        key="dato_valg"
-    )
+    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
-    
     valgt_tidspunkt = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
 
@@ -155,13 +152,25 @@ with fane_book:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
             st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
-            st.session_state.bookinger[booking_noegle] = {
+            nyt_notat = notat_input.strip() if notat_input.strip() else "-"
+            
+            nye_rækker = []
+            for k, v in st.session_state.bookinger.items():
+                nye_rækker.append({"noegle": k, "jaeger_id": v["jaeger_id"], "navn": v["navn"], "tidspunkt": v["tidspunkt"], "notat": v["notat"]})
+            
+            nye_rækker.append({
+                "noegle": booking_noegle,
                 "jaeger_id": st.session_state.bruger_info["Nr"],
                 "navn": st.session_state.bruger_info["Navn"],
                 "tidspunkt": valgt_tidspunkt,
-                "notat": notat_input if notat_input.strip() else "-"
-            }
-            st.success(f"✅ Godkendt! Du har booket {st.session_state.omraader[valgt_omraade_id]} ({valgt_tidspunkt.lower()}) d. {dato_streng}.")
+                "notat": nyt_notat
+            })
+            
+            df_til_gem = pd.DataFrame(nye_rækker)
+            conn.update(spreadsheet=GOOGLE_SHEET_URL, data=df_til_gem)
+            
+            st.success(f"✅ Godkendt! Booking gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
+            st.rerun()
 
 
 # --- FANE 2: TJEK EN SPECIFIK DATO ---
