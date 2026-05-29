@@ -8,7 +8,6 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
-# Cache-buster (TOKEN_TID) tvinger Google Sheets til altid at aflevere de allernyeste bookinger live
 TOKEN_TID = str(int(time.time()))
 GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
@@ -46,7 +45,6 @@ def hent_aktuelle_bookinger():
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
                                 try:
-                                    # KORREKT LØSNING: Vi tager fat i indeks 0, 1, 2 og 3 enkeltvis
                                     bookinger_dict[noegle] = {
                                         "jaeger_id": int(str(dele[0]).strip()),
                                         "navn": str(dele[1]).strip(),
@@ -62,176 +60,163 @@ def hent_aktuelle_bookinger():
     except Exception as e:
         return {}
 
+# Indlæs altid databasen fra skyen live
 st.session_state.bookinger = hent_aktuelle_bookinger()
 
-baggrunds_css = """
-<style>
-[data-testid="stAppViewContainer"] {
-    background-image: url("https://unsplash.com");
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
-}
-[data-testid="stHeader"] {
-    background: rgba(0,0,0,0);
-}
-.stTabs [data-baseweb="tab-panel"] {
-    background-color: rgba(255, 255, 255, 0.95);
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-}
-h1, h2, h3, p, label {
-    color: #1c2e15;
-}
-</style>
-"""
-st.markdown(baggrunds_css, unsafe_allow_html=True)
-
-kontakt_data = [
-    {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
-    {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
-    {"Nr": 3, "Navn": "Thomas Jøns", "Tlf": "42 17 78 07", "E-mail": "cuba_joens@hotmail.com"},
-    {"Nr": 4, "Navn": "Jørgen Thomsen", "Tlf": "49 40 50 64", "E-mail": "thomsen777@gmail.com"},
-    {"Nr": 5, "Navn": "Per Eli Løfqvist", "Tlf": "30 50 32 12", "E-mail": "loefqvist@gmail.com"},
-    {"Nr": 6, "Navn": "Peter Aaen", "Tlf": "20 92 34 14", "E-mail": "peter.aaen46@gmail.com"},
-    {"Nr": 7, "Navn": "Morten Ransborg", "Tlf": "20 18 95 91", "E-mail": "morten@ransborg.net"},
-    {"Nr": 8, "Navn": "Steffen Carlsen", "Tlf": "53 55 44 94", "E-mail": "steffencarlsen86@gmail.com"},
-    {"Nr": 9, "Navn": "Morten Mæng Pedersen", "Tlf": "28 91 69 15", "E-mail": "mortenmaeng@hotmail.com"},
-    {"Nr": 10, "Navn": "Ole Libak Christensen", "Tlf": "31 50 35 55", "E-mail": "ole.libak@gmail.com"},
-    {"Nr": 11, "Navn": "Christian Ringstrøm Andersen", "Tlf": "61 26 17 38", "E-mail": "Christian.ringstroem@gmail.com"},
-    {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
-    {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
-    {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
-    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
-    {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
-    {"Nr": 17, "Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
-    {"Nr": 18, "Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
-    {"Nr": 19, "Navn": "Per Behrmann", "Tlf": "50 58 17 41", "E-mail": "perbehrmann@hotmail.com"},
-    {"Nr": 20, "Navn": "Tonni Bastrup Pedersen", "Tlf": "23 47 74 02", "E-mail": "tonnibastrup@gmail.com"},
-    {"Nr": 21, "Navn": "Peter Michael Nielsen", "Tlf": "23 72 62 25", "E-mail": "pmn@bbnpost.dk"},
-    {"Nr": 22, "Navn": "Simon Noer Burkal", "Tlf": "28 74 70 45", "E-mail": "Simon@burkal.dk"},
-    {"Nr": 23, "Navn": "Carsten Bjerregaard", "Tlf": "30 13 10 26", "E-mail": "Cbj.bjerregaard@gmail.com"},
-    {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
-    {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
-]
+if "jaegere" not in st.session_state:
+    st.session_state.jaegere = {
+        1: "Lasse Lichon Hesthaven", 2: "Alexander Knudsen", 3: "Thomas Jøns",
+        4: "Jørgen Thomsen", 5: "Per Eli Løfqvist", 6: "Peter Aaen",
+        7: "Morten Ransborg", 8: "Steffen Carlsen", 9: "Morten Mæng Pedersen",
+        10: "Ole Libak Christensen", 11: "Christian Ringstrøm Andersen",
+        12: "Tom Erik Houen", 13: "Jan Carstens", 14: "Benjamin Kirkeby G. Carstenskiold",
+        15: "Lars Højmose Kristensen", 16: "Peter Hahn Boelt", 17: "Jonathan Brun Sønderbæk",
+        18: "Mathies Boelt", 19: "Per Behrmann", 20: "Tonni Bastrup Pedersen",
+        21: "Peter Michael Nielsen", 22: "Simon Noer Burkal", 23: "Carsten Bjerregaard",
+        24: "Rene' Andersen", 25: "Kristian Hæsum Pedersen"
+    }
 
 st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
     6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
 }
-if "logget_ind" not in st.session_state:
-    st.session_state.logget_ind = False
-if "bruger_info" not in st.session_state:
-    st.session_state.bruger_info = None
 
-if not st.session_state.logget_ind:
-    st.title("🔒 Ravnkjærgaard - Adgangskontrol")
-    st.write("Indtast dit registrerede telefonnummer. Systemet logger dig ind automatisk.")
-    indtastet_tlf = st.text_input("Telefonnummer (8 tal):", placeholder="Skriv dit tlf. nr. her", key="login_input")
-    renset_indtastet = indtastet_tlf.replace(" ", "").strip()
-    if len(renset_indtastet) == 8:
-        fundet_bruger = None
-        for medlem in kontakt_data:
-            if renset_indtastet == medlem["Tlf"].replace(" ", "").strip():
-                fundet_bruger = medlem
-                break
-        if fundet_bruger:
-            st.session_state.logget_ind = True
-            st.session_state.bruger_info = fundet_bruger
-            st.rerun()
-        else:
-            st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Tjek indtastningen.")
-    st.stop()
-
-st.sidebar.write(f"Logget ind som:\n**{st.session_state.bruger_info['Navn']}**")
-if st.sidebar.button("Log ud"):
-    st.session_state.logget_ind = False
-    st.session_state.bruger_info = None
-    st.rerun()
-
+# --- WEB OVERFLADE ---
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
+st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
-
+# --- FANE 1: OPRET BOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
-    st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
-    valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
+    
+    valgt_jaeger_id = st.selectbox(
+        "Vælg dit navn på listen:", 
+        options=list(st.session_state.jaegere.keys()),
+        format_func=lambda x: f"Nr. {x} - {st.session_state.jaegere[x]}"
+    )
+    
+    valider_id_input = st.text_input("Bekræft beim indtaste dit medlemsnummer (tal):", type="password", key="opret_pin")
+    
+    valgt_omraade_id = st.selectbox(
+        "Vælg jagtområde:", 
+        options=list(st.session_state.omraader.keys()),
+        format_func=lambda x: st.session_state.omraader[x]
+    )
+    
     idag = datetime.today().date()
-    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
+    fjorten_dage_frem = idag + timedelta(days=14)
+    
+    valgt_dato = st.date_input(
+        "Vælg dato for jagten (Maks 14 dage frem):", 
+        min_value=idag,
+        max_value=fjorten_dage_frem,
+        key="dato_valg"
+    )
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
+    
     valgt_tidspunkt = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
-    if st.button("Bekræft og book jagt", type="primary"):
-        booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
-        if booking_noegle in st.session_state.bookinger:
-            nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
-            st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
-        else:
-            nyt_notat = notat_input.strip() if notat_input.strip() else "-"
-            data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
-            if send_til_google_form(booking_noegle, "BOOK", data_format):
-                st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(2.0)
-                st.rerun()
 
+    if st.button("Bekræft og book jagt", type="primary"):
+        if valider_id_input.strip() != str(valgt_jaeger_id):
+            st.error("❌ Fejl: Det indtastede medlemsnummer matcher ikke det valgte navn på listen!")
+        else:
+            booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
+            
+            if booking_noegle in st.session_state.bookinger:
+                nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
+                st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
+            else:
+                nyt_notat = notat_input.strip() if notat_input.strip() else "-"
+                data_format = f"{valgt_jaeger_id}|{st.session_state.jaegere[valgt_jaeger_id]}|{valgt_tidspunkt}|{nyt_notat}"
+                
+                if send_til_google_form(booking_noegle, "BOOK", data_format):
+                    st.success(f"✅ Godkendt! {st.session_state.jaegere[valgt_jaeger_id]} har booket {st.session_state.omraader[valgt_omraade_id]}. Opdaterer skyen...")
+                    time.sleep(2.0)
+                    st.rerun()
+
+# --- FANE 2: TJEK EN SPECIFIK DATO ---
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
     tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=datetime.today().date(), key="tjek_dato_valg")
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
+    
     st.write(f"### Status for d. {tjek_dato_streng}:")
+    
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
         morgen_noegle = f"{tjek_dato_streng}_{omr_id}_Morgen 🌅"
         aften_noegle = f"{tjek_dato_streng}_{omr_id}_Aften 🌇"
+        
         morgen_status = "Ledig 🟢"
         aften_status = "Ledig 🟢"
+        
         if morgen_noegle in st.session_state.bookinger:
             morgen_status = f"🔴 {st.session_state.bookinger[morgen_noegle]['navn']} ({st.session_state.bookinger[morgen_noegle]['notat']})"
         if aften_noegle in st.session_state.bookinger:
             aften_status = f"🔴 {st.session_state.bookinger[aften_noegle]['navn']} ({st.session_state.bookinger[aften_noegle]['notat']})"
+            
         data_tjek_liste.append({"Jagtområde": omr_navn, "Morgen 🌅": morgen_status, "Aften 🌇": aften_status})
+        
     df_tjek = pd.DataFrame(data_tjek_liste)
     st.dataframe(df_tjek, use_container_width=True, hide_index=True)
 
+# --- FANE 3: DEN FULDE KALENDEROVERSIGT & AFLYSNING ---
 with fane_fuld_oversigt:
-    st.header("Alle aktive bookinger i skyen")
-    if st.session_state.bookinger:
-        aktive_bookinger_liste = []
-        for noegle, info in st.session_state.bookinger.items():
+    st.header("Komplet oversigt over alle reservationer")
+    
+    if not st.session_state.bookinger:
+        st.info("Der er i øjeblikket ingen aktive bookinger i systemet.")
+    else:
+        tabel_data = []
+        for noegle, info in list(st.session_state.bookinger.items()):
             dele = noegle.split("_")
             if len(dele) >= 3:
-                dato_samlet = f"{dele}-{dele}-{dele}"
-                aktive_bookinger_liste.append({
-                    "Nøgle": noegle, 
-                    "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele if len(dele) > 3 else dele), "Ukendt"),
-                    "Tidspunkt": dele[-1], 
-                    "Jæger": info["navn"], 
-                    "Jæger_ID": info["jaeger_id"], 
+                dato_del = dele
+                omraade_id_del = int(dele)
+                tid_del = dele
+                
+                omraade_navn = st.session_state.omraader.get(omraade_id_del, f"Område {omraade_id_del}")
+                tabel_data.append({
+                    "Nøgle": noegle,
+                    "Dato": dato_del,
+                    "Tidspunkt": tid_del,
+                    "Jagtområde": omraade_navn,
+                    "Jæger": f"Nr. {info['jaeger_id']} - {info['navn']}",
+                    "Jæger_ID": info['jaeger_id'],
                     "Notat": info["notat"]
                 })
-        if aktive_bookinger_liste:
-            df_alle = pd.DataFrame(aktive_bookinger_liste).sort_values(by=["Dato", "Tidspunkt"])
-            st.dataframe(df_alle[["Dato", "Område", "Tidspunkt", "Jæger", "Notat"]], use_container_width=True, hide_index=True)
-            st.subheader("❌ Aflys en af dine egne bookinger")
-            egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
-            if not egne_bookinger.empty:
-                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})")
-                if st.button("Slet valgte booking", type="secondary"):
-                    data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
-                    if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
-                        st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
-                        time.sleep(2.0)
-                        st.rerun()
-            else:
-                st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
-    else:
-        st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
+        
+        if tabel_data:
+            df = pd.DataFrame(tabel_data).sort_values(by=["Dato", "Tidspunkt"])
+            st.dataframe(df[["Dato", "Tidspunkt", "Jagtområde", "Jæger", "Notat"]], use_container_width=True, hide_index=True)
+            
+            st.write("---")
+            st.subheader("🗑️ Vil du aflyse en booking?")
+            
+            slet_valg = st.selectbox(
+                "Vælg den booking du vil fjerne:",
+                options=tabel_data,
+                format_func=lambda x: f"{x['Dato']} ({x['Tidspunkt'].lower()}) - {x['Jagtområde']} [{x['Jæger']}]"
+                if isinstance(x, dict) else str(x)
+            )
+            
+            slet_id_validering = st.text_input("Indtast dit medlemsnummer for at godkende aflysning:", type="password", key="slet_pin")
+            
+            if st.button("Slet valgte booking", type="secondary"):
+                if isinstance(slet_valg, dict):
+                    korrekt_id = str(slet_valg["Jæger_ID"])
+                    if slet_id_validering.strip() == korrekt_id:
+                        data_afbestil = f"{slet_valg['Jæger_ID']}|-|--|-"
+                        if send_til_google_form(slet_valg["Nøgle"], "AFBESTIL", data_afbestil):
+                            st.success("📌 Bookingen er blevet slettet!")
+                            time.sleep(2.0)
+                            st.rerun()
+                    else:
+                        st.error("❌ Forkert medlemsnummer. Du kan kun slette dine egne bookinger.")
 
 with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
@@ -242,5 +227,8 @@ with fane_regler_info:
     """)
 
 with fane_kontakt:
-    st.header("📞 Medlemsliste")
-    st.dataframe(pd.DataFrame(kontakt_data)[["Nr", "Navn", "Tlf", "E-mail"]], use_container_width=True, hide_index=True)
+    st.header("📞 Medlemsliste & Kontakt")
+    kontakt_liste_visning = []
+    for k, v in st.session_state.jaegere.items():
+        kontakt_liste_visning.append({"Nr": k, "Navn": v})
+    st.dataframe(pd.DataFrame(kontakt_liste_visning), use_container_width=True, hide_index=True)
