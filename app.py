@@ -24,7 +24,7 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     try:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
-        # DEFINITIV RETTELSE: Forbindelsestjekket er nu komplet og fejlsikret herunder
+        # SIKKER RETTELSE: Forbindelsestjekket er nu komplet og godkender booking korrekt
         return res.status_code == 201
     except:
         return False
@@ -53,7 +53,7 @@ def hent_aktuelle_bookinger():
                         bookinger_dict[n_noegle] = {
                             "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] and str(række["jaeger_id"]).isdigit() else 0,
                             "navn": str(række["navn"]) if "navn" in række else "Ukendt",
-                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen 🌅",
+                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen",
                             "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
                         }
         return bookinger_dict
