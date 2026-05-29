@@ -229,3 +229,5 @@ with fane_regler_info:
     * Ved udeblivelse af mere end 2 arbejdsdage betales af medlem **200kr. pr. dag**.
     * Ved udeblivelse af alle 5 arbejdsdage betales af medlem **1200kr.**
     """)
+    
+    st.write("---")
