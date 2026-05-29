@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# Medlemsliste med Kontaktoplysninger (Brugt til både login, dropdown og kontaktfane)
+# Medlemsliste med Kontaktoplysninger (Brugt til login, dropdown og kontaktfane)
 kontakt_data = [
     {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
     {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
@@ -38,7 +38,6 @@ kontakt_data = [
 if "jaegere" not in st.session_state:
     st.session_state.jaegere = {item["Nr"]: item["Navn"] for item in kontakt_data}
 
-# TVING opdatering af områderne (fjerner de gamle navne fra session_state permanent)
 st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
     6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
@@ -47,43 +46,40 @@ st.session_state.omraader = {
 if "bookinger" not in st.session_state:
     st.session_state.bookinger = {}
 
-# Hukommelse for login-status
 if "logget_ind" not in st.session_state:
     st.session_state.logget_ind = False
 if "bruger_info" not in st.session_state:
     st.session_state.bruger_info = None
 
 
-# --- LOGIN SKÆRM (Placeret øverst for fuld sikkerhed) ---
+# --- AUTOMATISK LOGIN-KONTROL ---
 if not st.session_state.logget_ind:
     st.title("🔒 Ravnkjærgaard - Adgangskontrol")
-    st.write("Indtast dit registrerede telefonnummer for at få adgang til jagtbooking-systemet.")
+    st.write("Indtast dit registrerede telefonnummer. Systemet logger dig ind automatisk.")
     
-    indtastet_tlf = st.text_input("Telefonnummer (F.eks. 28 57 23 62):", placeholder="Skriv dit tlf. nr. her")
+    indtastet_tlf = st.text_input("Telefonnummer (8 tal):", placeholder="Skriv dit tlf. nr. her", key="login_input")
     
-    if st.button("Log ind", type="primary"):
-        # Rens indtastet nummer for mellemrum, så det er nemmere at logge ind
-        renset_indtastet = indtastet_tlf.replace(" ", "").strip()
-        
+    # Automatisk tjek af nummeret, når der tastes
+    renset_indtastet = indtastet_tlf.replace(" ", "").strip()
+    
+    if len(renset_indtastet) == 8:
         fundet_bruger = None
         for medlem in kontakt_data:
-            renset_medlem_tlf = medlem["Tlf"].replace(" ", "").strip()
-            if renset_indtastet == renset_medlem_tlf:
+            if renset_indtastet == medlem["Tlf"].replace(" ", "").strip():
                 fundet_bruger = medlem
                 break
                 
         if fundet_bruger:
             st.session_state.logget_ind = True
             st.session_state.bruger_info = fundet_bruger
-            st.success(f"✅ Velkommen {fundet_bruger['Navn']}! Indlæser systemet...")
             st.rerun()
         else:
-            st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Prøv igen eller kontakt formanden.")
+            st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Tjek indtastningen.")
             
-    st.stop()  # Blokering: Stopper koden her, så man ikke kan se noget som helst uden login
+    st.stop()
 
 
-# --- SIDEBAR (Viser hvem der er lukket ind) ---
+# --- SIDEBAR ---
 st.sidebar.write(f"Logget ind som:\n**{st.session_state.bruger_info['Navn']}**")
 if st.sidebar.button("Log ud"):
     st.session_state.logget_ind = False
@@ -91,11 +87,10 @@ if st.sidebar.button("Log ud"):
     st.rerun()
 
 
-# --- HOVEDSIDE (Vises kun når man ER logget ind) ---
+# --- HOVEDSIDE (LOGGET IND) ---
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
-# Opretter faner på siden
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", 
     "🔍 Tjek Specifik Dato", 
