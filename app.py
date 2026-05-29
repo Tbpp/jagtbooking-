@@ -42,9 +42,9 @@ def hent_aktuelle_bookinger():
                             if len(dele) >= 4:
                                 bookinger_dict[noegle] = {
                                     "jaeger_id": int(dele[0]),
-                                    "navn": dele[1],
-                                    "tidspunkt": dele[2],
-                                    "notat": dele[3]
+                                    "navn": str(dele[1]),
+                                    "tidspunkt": str(dele[2]),
+                                    "notat": str(dele[3])
                                 }
                         elif handling == "AFBESTIL":
                             if noegle in bookinger_dict:
@@ -195,7 +195,7 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
+                dato_samlet = f"{dele[0]}"
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
