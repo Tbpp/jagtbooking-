@@ -8,6 +8,7 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
+# Cache-buster (TOKEN_TID) tvinger Google Sheets til altid at aflevere de allernyeste bookinger live
 TOKEN_TID = str(int(time.time()))
 GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
@@ -45,7 +46,7 @@ def hent_aktuelle_bookinger():
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
                                 try:
-                                    # KORREKT INDEKSERING: Henter hvert felt individuelt ud af listen
+                                    # KORREKT LØSNING: Vi tager fat i indeks 0, 1, 2 og 3 enkeltvis
                                     bookinger_dict[noegle] = {
                                         "jaeger_id": int(str(dele[0]).strip()),
                                         "navn": str(dele[1]).strip(),
@@ -175,7 +176,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(2.0)  # Giver skyen tid til at opdatere regnearket helt
+                time.sleep(2.0)
                 st.rerun()
 
 with fane_tjek_dato:
@@ -204,11 +205,11 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
+                dato_samlet = f"{dele}-{dele}-{dele}"
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele[3] if len(dele) > 3 else dele[1]), "Ukendt"),
+                    "Område": st.session_state.omraader.get(int(dele if len(dele) > 3 else dele), "Ukendt"),
                     "Tidspunkt": dele[-1], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
