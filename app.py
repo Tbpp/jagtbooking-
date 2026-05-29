@@ -2,12 +2,15 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import requests
+import time
 
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
-GOOGLE_SHEET_URL = "https://google.com"
+# Vi bruger et tidsstempel (time.time) til at tvinge Google til altid at sende friske data uden cache
+TOKEN_TID = str(int(time.time()))
+GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
 
 def send_til_google_form(noegle, handling, data_streng):
@@ -42,11 +45,12 @@ def hent_aktuelle_bookinger():
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
+                                # HER ER RETTELSEN: Vi tager fat i de specifikke elementer i listen ved hjælp af [0], [1] osv.
                                 bookinger_dict[noegle] = {
-                                    "jaeger_id": int(dele[0]),
-                                    "navn": str(dele[1]),
-                                    "tidspunkt": str(dele[2]),
-                                    "notat": str(dele[3])
+                                    "jaeger_id": int(str(dele[0]).strip()),
+                                    "navn": str(dele[1]).strip(),
+                                    "tidspunkt": str(dele[2]).strip(),
+                                    "notat": str(dele[3]).strip()
                                 }
                         elif handling == "AFBESTIL":
                             if noegle in bookinger_dict:
@@ -169,6 +173,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
+                time.sleep(1.5)  # Giver Google et øjeblik til at skrive linjen færdig i skyen
                 st.rerun()
 
 with fane_tjek_dato:
@@ -197,7 +202,8 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                dato_samlet = f"{dele[0]}"
+                # Genskaber datoen korrekt i formatet YYYY-MM-DD
+                dato_samlet = f"{dele[0]}_{dele[1]}_{dele[2]}".split("_")[0]
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
@@ -218,6 +224,7 @@ with fane_fuld_oversigt:
                     data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
                     if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
+                        time.sleep(1.5)
                         st.rerun()
             else:
                 st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
