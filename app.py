@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# Medlemsliste med Kontaktoplysninger (Brugt til login, dropdown og kontaktfane)
+# Medlemsliste med Kontaktoplysninger (Brugt til login og kontaktfane)
 kontakt_data = [
     {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
     {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
@@ -19,7 +19,7 @@ kontakt_data = [
     {"Nr": 10, "Navn": "Ole Libak Christensen", "Tlf": "31 50 35 55", "E-mail": "ole.libak@gmail.com"},
     {"Nr": 11, "Navn": "Christian Ringstrøm Andersen", "Tlf": "61 26 17 38", "E-mail": "Christian.ringstroem@gmail.com"},
     {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
-    {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
+    {"Nr": 13, "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
     {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
     {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
     {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
@@ -33,10 +33,6 @@ kontakt_data = [
     {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
     {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
 ]
-
-# Opretter ordbog til dropdown baseret på medlemslisten
-if "jaegere" not in st.session_state:
-    st.session_state.jaegere = {item["Nr"]: item["Navn"] for item in kontakt_data}
 
 st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
@@ -59,7 +55,6 @@ if not st.session_state.logget_ind:
     
     indtastet_tlf = st.text_input("Telefonnummer (8 tal):", placeholder="Skriv dit tlf. nr. her", key="login_input")
     
-    # Automatisk tjek af nummeret, når der tastes
     renset_indtastet = indtastet_tlf.replace(" ", "").strip()
     
     if len(renset_indtastet) == 8:
