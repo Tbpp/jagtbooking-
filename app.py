@@ -1,36 +1,79 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-from streamlit_gsheets import GSheetsConnection
+import requests
 
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- FORBINDELSE TIL GOOGLE SHEETS (DIT ARK) ---
+# --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
+# Dit offentlige Google Sheet link (bruges til at LÆSE data)
 GOOGLE_SHEET_URL = "https://google.com"
+# Dit Google Form link (bruges til at SKRIVE/GEMME data)
+FORM_BASE_URL = "https://google.com"
 
-# Opret forbindelse til Google Sheets
-conn = st.connection("gsheets", type=GSheetsConnection)
-
-# Funktion til altid at hente de nyeste bookinger live fra skyen
-def hent_aktuelle_bookinger():
+def send_til_google_form(noegle, handling, data_streng):
+    """Sender automatisk en booking eller afbestilling til Google Sheets via din Form"""
+    payload = {
+        "entry.222097927": noegle,
+        "entry.1968838176": handling,
+        "entry.937412468": data_streng
+    }
     try:
-        df = conn.read(spreadsheet=GOOGLE_SHEET_URL, ttl="0d") # ttl="0d" sikrer, at den ALDRIG cacher gamle data
+        requests.post(FORM_BASE_URL, data=payload)
+        return True
+    except Exception as e:
+        st.error(f"Kunne ikke oprette forbindelse til skyen: {e}")
+        return False
+
+def hent_aktuelle_bookinger():
+    """Henter alle gyldige bookinger live fra dit Google Sheet og rydder op i aflysninger"""
+    try:
+        # Læs csv-data direkte fra det offentlige link
+        df = pd.read_csv(GOOGLE_SHEET_URL)
         bookinger_dict = {}
+        
         if not df.empty:
+            # Vi sorterer kronologisk, så nyere handlinger overskriver ældre (f.eks. hvis man booker, aflyser, og booker igen)
             for _, row in df.iterrows():
-                if 'noegle' in row and pd.notna(row['noegle']) and str(row['noegle']).strip() != "":
-                    bookinger_dict[str(row['noegle'])] = {
-                        "jaeger_id": int(row['jaeger_id']) if 'jaeger_id' in row and pd.notna(row['jaeger_id']) else 0,
-                        "navn": str(row['navn']) if 'navn' in row else "Ukendt",
-                        "tidspunkt": str(row['tidspunkt']) if 'tidspunkt' in row else "Morgen 🌅",
-                        "notat": str(row['notat']) if 'notat' in row and pd.notna(row['notat']) and str(row['notat']).strip() != "" else "-"
-                    }
+                # Tilpas kolonnenavne alt efter om Google kalder dem præcis hvad du skrev eller ej
+                noegle_col = [c for c in df.columns if 'noegle' in c.lower()]
+                handling_col = [c for c in df.columns if 'handling' in c.lower()]
+                data_col = [c for c in df.columns if 'data' in c.lower()]
+                
+                if noegle_col and handling_col and data_col:
+                    noegle = str(row[noegle_col[0]]).strip()
+                    handling = str(row[handling_col[0]]).strip().upper()
+                    data_felt = str(row[data_col[0]]).strip()
+                    
+                    if pd.notna(row[noegle_col[0]]) and noegle != "":
+                        if handling == "BOOK" and "|" in data_felt:
+                            dele = data_felt.split("|")
+                            if len(dele) >= 4:
+                                bookinger_dict[noegle] = {
+                                    "jaeger_id": int(dele[0]),
+                                    "navn": dele[1],
+                                    "tidspunkt": dele[2],
+                                    "notat": dele[3]
+                                }
+                        elif handling == "AFBESTIL":
+                            # Hvis handlingen er afbestil, fjerner vi bookingen fra kalenderen
+                            if noegle in bookinger_dict:
+                                del bookinger_dict[noegle] = {
+                                    "jaeger_id": int(dele[0]),
+                                    "navn": dele[1],
+                                    "tidspunkt": dele[2],
+                                    "notat": dele[3]
+                                }
+                        elif handling == "AFBESTIL":
+                            if noegle in bookinger_dict:
+                                del bookinger_dict[noegle]
         return bookinger_dict
     except Exception as e:
+        # Hvis arket er helt tomt eller ikke oprettet endnu, returneres en tom database
         return {}
 
-# Hent altid databasen når siden opdateres
+# Hent altid de nyeste data live fra skyen ved hver opdatering
 st.session_state.bookinger = hent_aktuelle_bookinger()
 
 # --- STYLING OG BAGGRUND ---
@@ -132,6 +175,7 @@ st.title("🌲 Ravnkjærgaard - Jagt Booking")
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
+
 
 # --- FANE 1: OPRET BOOKING ---
 with fane_book:
