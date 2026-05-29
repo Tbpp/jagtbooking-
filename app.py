@@ -41,7 +41,7 @@ if "bookinger" not in st.session_state:
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
-# Opretter faner på siden - Nu med den nye fane til kontaktlisten
+# Opretter faner på siden
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", 
     "🔍 Tjek Specifik Dato", 
@@ -71,7 +71,7 @@ with fane_book:
     
     # Konfiguration af 14 dages begrænsning
     idag = datetime.today().date()
-    fjorten_dage_frem = idg = idag + timedelta(days=14)
+    fjorten_dage_frem = idag + timedelta(days=14)
     
     valgt_dato = st.date_input(
         "Vælg dato for jagten (Maks 14 dage frem):", 
@@ -228,3 +228,6 @@ with fane_regler_info:
     * Man skal **min. deltage på 3 ud af 5 dage**.
     * Ved udeblivelse af mere end 2 arbejdsdage betales af medlem **200kr. pr. dag**.
     * Ved udeblivelse af alle 5 arbejdsdage betales af medlem **1200kr.**
+    """)
+    
+    st.write("---")
