@@ -206,12 +206,11 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
-                # RETTELSE: Samler og læser datoen fejlfrit nu
-                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
+                dato_samlet = "-".join(dele[:3])
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele[3] if len(dele) > 3 else dele[1]), "Ukendt"),
+                    "Område": st.session_state.omraader.get(int(dele if len(dele) > 3 else dele), "Ukendt"),
                     "Tidspunkt": dele[-1], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
@@ -223,7 +222,7 @@ with fane_fuld_oversigt:
             st.subheader("❌ Aflys en af dine egne bookinger")
             egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
             if not egne_bookinger.empty:
-                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})")
+                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})")
                 if st.button("Slet valgte booking", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
