@@ -5,39 +5,93 @@ from datetime import datetime, timedelta
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# 2. Database med KUN nummer og navn fra anpartslisten (Brugt til dropdown-menuer)
+# Medlemsliste med Kontaktoplysninger (Brugt til både login, dropdown og kontaktfane)
+kontakt_data = [
+    {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
+    {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
+    {"Nr": 3, "Navn": "Thomas Jøns", "Tlf": "42 17 78 07", "E-mail": "cuba_joens@hotmail.com"},
+    {"Nr": 4, "Navn": "Jørgen Thomsen", "Tlf": "49 40 50 64", "E-mail": "thomsen777@gmail.com"},
+    {"Nr": 5, "Navn": "Per Eli Løfqvist", "Tlf": "30 50 32 12", "E-mail": "loefqvist@gmail.com"},
+    {"Nr": 6, "Navn": "Peter Aaen", "Tlf": "20 92 34 14", "E-mail": "peter.aaen46@gmail.com"},
+    {"Nr": 7, "Navn": "Morten Ransborg", "Tlf": "20 18 95 91", "E-mail": "morten@ransborg.net"},
+    {"Nr": 8, "Navn": "Steffen Carlsen", "Tlf": "53 55 44 94", "E-mail": "steffencarlsen86@gmail.com"},
+    {"Nr": 9, "Navn": "Morten Mæng Pedersen", "Tlf": "28 91 69 15", "E-mail": "mortenmaeng@hotmail.com"},
+    {"Nr": 10, "Navn": "Ole Libak Christensen", "Tlf": "31 50 35 55", "E-mail": "ole.libak@gmail.com"},
+    {"Nr": 11, "Navn": "Christian Ringstrøm Andersen", "Tlf": "61 26 17 38", "E-mail": "Christian.ringstroem@gmail.com"},
+    {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
+    {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
+    {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
+    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
+    {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
+    {"Nr": 17, "Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
+    {"Nr": 18, "Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
+    {"Nr": 19, "Navn": "Per Behrmann", "Tlf": "50 58 17 41", "E-mail": "perbehrmann@hotmail.com"},
+    {"Nr": 20, "Navn": "Tonni Bastrup Pedersen", "Tlf": "23 47 74 02", "E-mail": "tonnibastrup@gmail.com"},
+    {"Nr": 21, "Navn": "Peter Michael Nielsen", "Tlf": "23 72 62 25", "E-mail": "pmn@bbnpost.dk"},
+    {"Nr": 22, "Navn": "Simon Noer Burkal", "Tlf": "28 74 70 45", "E-mail": "Simon@burkal.dk"},
+    {"Nr": 23, "Navn": "Carsten Bjerregaard", "Tlf": "30 13 10 26", "E-mail": "Cbj.bjerregaard@gmail.com"},
+    {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
+    {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
+]
+
+# Opretter ordbog til dropdown baseret på medlemslisten
 if "jaegere" not in st.session_state:
-    st.session_state.jaegere = {
-        1: "Lasse Lichon Hesthaven", 2: "Alexander Knudsen", 3: "Thomas Jøns",
-        4: "Jørgen Thomsen", 5: "Per Eli Løfqvist", 6: "Peter Aaen",
-        7: "Morten Ransborg", 8: "Steffen Carlsen", 9: "Morten Mæng Pedersen",
-        10: "Ole Libak Christensen", 11: "Christian Ringstrøm Andersen",
-        12: "Tom Erik Houen", 13: "Jan Carstens", 14: "Benjamin Kirkeby G. Carstenskiold",
-        15: "Lars Højmose Kristensen", 16: "Peter Hahn Boelt", 17: "Jonathan Brun Sønderbæk",
-        18: "Mathies Boelt", 19: "Per Behrmann", 20: "Tonni Bastrup Pedersen",
-        21: "Peter Michael Nielsen", 22: "Simon Noer Burkal", 23: "Carsten Bjerregaard",
-        24: "Rene' Andersen", 25: "Kristian Hæsum Pedersen"
-    }
+    st.session_state.jaegere = {item["Nr"]: item["Navn"] for item in kontakt_data}
 
 # TVING opdatering af områderne (fjerner de gamle navne fra session_state permanent)
 st.session_state.omraader = {
-    1: "Område A",
-    2: "Område B",
-    3: "Område C",
-    4: "Område D",
-    5: "Område E",
-    6: "Område F",
-    7: "Område G",
-    8: "Område H",
-    9: "Område I",
-    10: "Område J"
+    1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
+    6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
 }
 
 if "bookinger" not in st.session_state:
     st.session_state.bookinger = {}
 
+# Hukommelse for login-status
+if "logget_ind" not in st.session_state:
+    st.session_state.logget_ind = False
+if "bruger_info" not in st.session_state:
+    st.session_state.bruger_info = None
 
-# --- WEB OVERFLADE ---
+
+# --- LOGIN SKÆRM (Placeret øverst for fuld sikkerhed) ---
+if not st.session_state.logget_ind:
+    st.title("🔒 Ravnkjærgaard - Adgangskontrol")
+    st.write("Indtast dit registrerede telefonnummer for at få adgang til jagtbooking-systemet.")
+    
+    indtastet_tlf = st.text_input("Telefonnummer (F.eks. 28 57 23 62):", placeholder="Skriv dit tlf. nr. her")
+    
+    if st.button("Log ind", type="primary"):
+        # Rens indtastet nummer for mellemrum, så det er nemmere at logge ind
+        renset_indtastet = indtastet_tlf.replace(" ", "").strip()
+        
+        fundet_bruger = None
+        for medlem in kontakt_data:
+            renset_medlem_tlf = medlem["Tlf"].replace(" ", "").strip()
+            if renset_indtastet == renset_medlem_tlf:
+                fundet_bruger = medlem
+                break
+                
+        if fundet_bruger:
+            st.session_state.logget_ind = True
+            st.session_state.bruger_info = fundet_bruger
+            st.success(f"✅ Velkommen {fundet_bruger['Navn']}! Indlæser systemet...")
+            st.rerun()
+        else:
+            st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Prøv igen eller kontakt formanden.")
+            
+    st.stop()  # Blokering: Stopper koden her, så man ikke kan se noget som helst uden login
+
+
+# --- SIDEBAR (Viser hvem der er lukket ind) ---
+st.sidebar.write(f"Logget ind som:\n**{st.session_state.bruger_info['Navn']}**")
+if st.sidebar.button("Log ud"):
+    st.session_state.logget_ind = False
+    st.session_state.bruger_info = None
+    st.rerun()
+
+
+# --- HOVEDSIDE (Vises kun når man ER logget ind) ---
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 st.write("Hvert område kan maksimalt bookes 2 gange om dagen (Morgen og Aften), og der må kun være 1 jæger pr. område ad gangen.")
 
