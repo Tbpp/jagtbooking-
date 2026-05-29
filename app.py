@@ -8,7 +8,6 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
-# Cache-buster sikrer, at vi altid henter de allernyeste rækker fra skyen live
 TOKEN_TID = str(int(time.time()))
 GOOGLE_SHEET_URL = f"https://google.com{TOKEN_TID}"
 FORM_BASE_URL = "https://google.com"
@@ -46,12 +45,17 @@ def hent_aktuelle_bookinger():
                             dele = data_felt.split("|")
                             if len(dele) >= 4:
                                 try:
-                                    # RETTELSE: Data trækkes nu sikkert ud som rene tekststrenge og tal
+                                    # RETTELSE: Vi omdanner dataene korrekt til tekststrenge enkeltvis
+                                    j_id_rent = int(str(dele[0]).strip())
+                                    j_navn_rent = str(dele[1]).strip()
+                                    j_tid_rent = str(dele[2]).strip()
+                                    j_notat_rent = str(dele[3]).strip()
+                                    
                                     bookinger_dict[noegle] = {
-                                        "jaeger_id": int(str(dele[0]).strip()),
-                                        "navn": str(dele[1]).strip(),
-                                        "tidspunkt": str(dele[2]).strip(),
-                                        "notat": str(dele[3]).strip()
+                                        "jaeger_id": j_id_rent,
+                                        "navn": j_navn_rent,
+                                        "tidspunkt": j_tid_rent,
+                                        "notat": j_notat_rent
                                     }
                                 except:
                                     continue
@@ -176,7 +180,7 @@ with fane_book:
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
-                time.sleep(2.0)  # Giver skyen tid til at opdatere regnearket
+                time.sleep(2.0)  # Giver databasen tid til at opdatere
                 st.rerun()
 
 with fane_tjek_dato:
@@ -209,8 +213,8 @@ with fane_fuld_oversigt:
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
                     "Dato": dato_samlet, 
-                    "Område": st.session_state.omraader.get(int(dele[1]), "Ukendt"),
-                    "Tidspunkt": dele[2], 
+                    "Område": st.session_state.omraader.get(int(dele[3]), "Ukendt"),
+                    "Tidspunkt": dele[4], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
                     "Notat": info["notat"]
