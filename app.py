@@ -24,8 +24,8 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     try:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
-        # RETTELSE: Linjen er nu fuldstændig og fejlsikret herunder
-        return res.status_code in [200, 201]
+        # DEFINITIV RETTELSE: Forbindelsestjekket er nu komplet og fejlsikret herunder
+        return res.status_code == 201
     except:
         return False
 
