@@ -5,7 +5,34 @@ from datetime import datetime, timedelta
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# Medlemsliste med Kontaktoplysninger (Brugt til login og kontaktfane)
+# --- KODE TIL BAGGRUNDSBILLEDE (NY) ---
+# Du kan udskifte linket i 'url(...)' herunder med dit eget billedlink, hvis du vil have et andet billede på.
+baggrunds_css = """
+<style>
+[data-testid="stAppViewContainer"] {
+    background-image: url("https://unsplash.com");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Gør boksene en lille smule gennemsigtige, så teksten er nemmere at læse oven på billedet */
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0);
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+}
+</style>
+"""
+st.markdown(baggrunds_css, unsafe_allow_html=True)
+
+
+# Medlemsliste med Kontaktoplysninger
 kontakt_data = [
     {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
     {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
@@ -33,6 +60,9 @@ kontakt_data = [
     {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
     {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
 ]
+
+if "jaegere" not in st.session_state:
+    st.session_state.jaegere = {item["Nr"]: item["Navn"] for item in kontakt_data}
 
 st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
@@ -95,11 +125,9 @@ fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = 
 ])
 
 
-# --- FANE 1: OPRET BOOKING (AUTOMATISK NAVN) ---
+# --- FANE 1: OPRET BOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
-    
-    # Vis hvem der bookes for (Hentet direkte fra login)
     st.success(f"✍️ Du opretter lige nu en booking for: **{st.session_state.bruger_info['Navn']}**")
     
     valgt_omraade_id = st.selectbox(
@@ -127,7 +155,6 @@ with fane_book:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
             st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
-            # Gemmer automatisk med den indloggede jægers ID og Navn
             st.session_state.bookinger[booking_noegle] = {
                 "jaeger_id": st.session_state.bruger_info["Nr"],
                 "navn": st.session_state.bruger_info["Navn"],
