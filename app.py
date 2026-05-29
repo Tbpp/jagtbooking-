@@ -7,13 +7,10 @@ import requests
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- FORBINDELSE TIL GOOGLE SHEET & FORM ---
-# Dit offentlige Google Sheet link (bruges til at LÆSE data)
 GOOGLE_SHEET_URL = "https://google.com"
-# Dit Google Form link (bruges til at SKRIVE/GEMME data)
 FORM_BASE_URL = "https://google.com"
 
 def send_til_google_form(noegle, handling, data_streng):
-    """Sender automatisk en booking eller afbestilling til Google Sheets via din Form"""
     payload = {
         "entry.222097927": noegle,
         "entry.1968838176": handling,
@@ -27,23 +24,18 @@ def send_til_google_form(noegle, handling, data_streng):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle gyldige bookinger live fra dit Google Sheet og rydder op i aflysninger"""
     try:
         df = pd.read_csv(GOOGLE_SHEET_URL)
         bookinger_dict = {}
-        
         if not df.empty:
             for _, row in df.iterrows():
-                # Find kolonnerne uanset præcis stavemåde
                 noegle_col = [c for c in df.columns if 'noegle' in c.lower()]
                 handling_col = [c for c in df.columns if 'handling' in c.lower()]
                 data_col = [c for c in df.columns if 'data' in c.lower()]
-                
                 if noegle_col and handling_col and data_col:
                     noegle = str(row[noegle_col[0]]).strip()
                     handling = str(row[handling_col[0]]).strip().upper()
                     data_felt = str(row[data_col[0]]).strip()
-                    
                     if pd.notna(row[noegle_col[0]]) and noegle != "" and noegle != "nan":
                         if handling == "BOOK" and "|" in data_felt:
                             dele = data_felt.split("|")
@@ -55,17 +47,14 @@ def hent_aktuelle_bookinger():
                                     "notat": dele[3]
                                 }
                         elif handling == "AFBESTIL":
-                            # FEJLEN ER RETTET HER: Sletter korrekt uden brug af lighedstegn
                             if noegle in bookinger_dict:
                                 del bookinger_dict[noegle]
         return bookinger_dict
     except Exception as e:
         return {}
 
-# Hent altid de nyeste data live fra skyen ved hver opdatering
 st.session_state.bookinger = hent_aktuelle_bookinger()
 
-# --- STYLING OG BAGGRUND ---
 baggrunds_css = """
 <style>
 [data-testid="stAppViewContainer"] {
@@ -91,7 +80,6 @@ h1, h2, h3, p, label {
 """
 st.markdown(baggrunds_css, unsafe_allow_html=True)
 
-# Medlemsliste med Kontaktoplysninger
 kontakt_data = [
     {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
     {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
@@ -124,19 +112,16 @@ st.session_state.omraader = {
     1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
     6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
 }
-
 if "logget_ind" not in st.session_state:
     st.session_state.logget_ind = False
 if "bruger_info" not in st.session_state:
     st.session_state.bruger_info = None
 
-# --- AUTOMATISK LOGIN-KONTROL ---
 if not st.session_state.logget_ind:
     st.title("🔒 Ravnkjærgaard - Adgangskontrol")
     st.write("Indtast dit registrerede telefonnummer. Systemet logger dig ind automatisk.")
     indtastet_tlf = st.text_input("Telefonnummer (8 tal):", placeholder="Skriv dit tlf. nr. her", key="login_input")
     renset_indtastet = indtastet_tlf.replace(" ", "").strip()
-    
     if len(renset_indtastet) == 8:
         fundet_bruger = None
         for medlem in kontakt_data:
@@ -151,73 +136,58 @@ if not st.session_state.logget_ind:
             st.error("❌ Telefonnummeret blev ikke fundet på medlemslisten. Tjek indtastningen.")
     st.stop()
 
-# --- SIDEBAR ---
 st.sidebar.write(f"Logget ind som:\n**{st.session_state.bruger_info['Navn']}**")
 if st.sidebar.button("Log ud"):
     st.session_state.logget_ind = False
     st.session_state.bruger_info = None
     st.rerun()
 
-# --- HOVEDSIDE ---
 st.title("🌲 Ravnkjærgaard - Jagt Booking")
 
 fane_book, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Booking", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
 
-# --- FANE 1: OPRET BOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
-    
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     valgt_tidspunkt = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
-
     if st.button("Bekræft og book jagt", type="primary"):
         booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
-        
         if booking_noegle in st.session_state.bookinger:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
             st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
             data_format = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|{valgt_tidspunkt}|{nyt_notat}"
-            
             if send_til_google_form(booking_noegle, "BOOK", data_format):
                 st.success(f"✅ Godkendt! Din booking er gemt i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
                 st.rerun()
 
-# --- FANE 2: TJEK EN SPECIFIK DATO ---
 with fane_tjek_dato:
     st.header("Hvem er på jagt denne dag?")
     tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=datetime.today().date(), key="tjek_dato_valg")
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
-    
     st.write(f"### Status for d. {tjek_dato_streng}:")
-    
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
         morgen_noegle = f"{tjek_dato_streng}_{omr_id}_Morgen 🌅"
         aften_noegle = f"{tjek_dato_streng}_{omr_id}_Aften 🌇"
-        
         morgen_status = "Ledig 🟢"
         aften_status = "Ledig 🟢"
-        
         if morgen_noegle in st.session_state.bookinger:
             morgen_status = f"🔴 {st.session_state.bookinger[morgen_noegle]['navn']} ({st.session_state.bookinger[morgen_noegle]['notat']})"
         if aften_noegle in st.session_state.bookinger:
             aften_status = f"🔴 {st.session_state.bookinger[aften_noegle]['navn']} ({st.session_state.bookinger[aften_noegle]['notat']})"
-            
         data_tjek_liste.append({"Jagtområde": omr_navn, "Morgen 🌅": morgen_status, "Aften 🌇": aften_status})
-        
     df_tjek = pd.DataFrame(data_tjek_liste)
     st.dataframe(df_tjek, use_container_width=True, hide_index=True)
 
-# --- FANE 3: DEN FULDE KALENDEROVERSIGT & AFLYSNING ---
 with fane_fuld_oversigt:
     st.header("Alle aktive bookinger i skyen")
     if st.session_state.bookinger:
@@ -225,32 +195,24 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) >= 3:
+                dato_samlet = f"{dele[0]}-{dele[1]}-{dele[2]}"
                 aktive_bookinger_liste.append({
                     "Nøgle": noegle, 
-                    "Dato": dele[0], 
+                    "Dato": dato_samlet, 
                     "Område": st.session_state.omraader.get(int(dele[1]), "Ukendt"),
                     "Tidspunkt": dele[2], 
                     "Jæger": info["navn"], 
                     "Jæger_ID": info["jaeger_id"], 
                     "Notat": info["notat"]
                 })
-        
         if aktive_bookinger_liste:
             df_alle = pd.DataFrame(aktive_bookinger_liste).sort_values(by=["Dato", "Tidspunkt"])
             st.dataframe(df_alle[["Dato", "Område", "Tidspunkt", "Jæger", "Notat"]], use_container_width=True, hide_index=True)
-            
             st.subheader("❌ Aflys en af dine egne bookinger")
             egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
-            
             if not egne_bookinger.empty:
-                aflys_valg = st.selectbox(
-                    "Vælg den booking du vil slette:", 
-                    options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
-                )
-                
+                aflys_valg = st.selectbox("Vælg den booking du vil slette:", options=egne_bookinger["Nøgle"].tolist(), format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})")
                 if st.button("Slet valgte booking", type="secondary"):
-                    # Vi sender en afbestillingslinje afsted til din Google Form
                     data_afbestil = f"{st.session_state.bruger_info['Nr']}|{st.session_state.bruger_info['Navn']}|-|-"
                     if send_til_google_form(aflys_valg, "AFBESTIL", data_afbestil):
                         st.success("Aflysningen er registreret i skyen! Opdaterer kalenderen...")
@@ -260,7 +222,6 @@ with fane_fuld_oversigt:
     else:
         st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
 
-# --- FANE 4 & 5 (REGLER & KONTAKT) ---
 with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
