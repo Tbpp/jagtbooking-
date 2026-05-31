@@ -37,7 +37,7 @@ def aflyst_i_google_sheet(noegle):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle bookinger og fjerner usynlige mellemrum fra jeres Google Sheet"""
+    """Henter alle bookinger lynhurtigt fra Google Sheet via SheetDB API'en"""
     try:
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
@@ -48,12 +48,11 @@ def hent_aktuelle_bookinger():
             if isinstance(data, list):
                 for række in data:
                     if "noegle" in række and række["noegle"] and str(række["noegle"]).strip() != "":
-                        # FAST RETTELSE: .strip() fjerner det skjulte mellemrum fra dit Google Sheet
                         n_noegle = str(række["noegle"]).strip()
                         bookinger_dict[n_noegle] = {
                             "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] and str(række["jaeger_id"]).isdigit() else 0,
                             "navn": str(række["navn"]) if "navn" in række else "Ukendt",
-                            "tidspunkt": str(række["tidspunkt"]).strip() if "tidspunkt" in række else "Morgen",
+                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen",
                             "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
                         }
         return bookinger_dict
