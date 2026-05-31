@@ -11,7 +11,7 @@ st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", 
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet som sikker tekst"""
+    """Skriver en ny booking direkte ind i jeres Google Sheet"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
@@ -104,7 +104,7 @@ kontakt_data = [
     {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
     {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
     {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
-    {"Nr": 15, "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
+    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},  # FAST RETTELSE: "Navn": tilføjet
     {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
     {"Nr": 17, "Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
     {"Nr": 18, "Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
@@ -179,7 +179,6 @@ with fane_book:
     if st.button("Bekræft og book jagt", type="primary"):
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
         omr_sammensat = omr_navn_tekst.replace(" ", "")
-        # UNIK KLAR NØGLE: Helt rent standardformat med understregninger
         booking_noegle = f"{dato_streng}_{omr_sammensat}_{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
@@ -194,6 +193,7 @@ with fane_book:
                 st.rerun()
             else:
                 st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
+
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
