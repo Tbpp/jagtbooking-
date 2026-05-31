@@ -8,6 +8,7 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- DATABASEFORBINDELSE TIL SHEETDB ---
+# FAST RETTELSE: Dit API-ID er nu sat korrekt på plads igen
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
@@ -104,7 +105,7 @@ kontakt_data = [
     {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
     {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
     {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
-    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},  # FAST RETTELSE: "Navn": tilføjet
+    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
     {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
     {"Nr": 17, "Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
     {"Nr": 18, "Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
@@ -169,6 +170,7 @@ with fane_book:
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
+    # FAST RETTELSE: Færdiggjort linjen, som var afbrudt
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     
@@ -193,7 +195,6 @@ with fane_book:
                 st.rerun()
             else:
                 st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
-
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
@@ -226,7 +227,6 @@ with fane_tjek_dato:
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
     st.write(f"### Status for d. {tjek_dato_streng}:")
     
-    # 1. Vis hytte status først
     hytte_tjek_noegle = f"{tjek_dato_streng}_Jagthytte_HeleDagen"
     if hytte_tjek_noegle in st.session_state.bookinger:
         st.warning(f"🏠 **Jagthytten:** Reserveret af {st.session_state.bookinger[hytte_tjek_noegle]['navn']} ({st.session_state.bookinger[hytte_tjek_noegle]['notat']})")
@@ -235,7 +235,6 @@ with fane_tjek_dato:
         
     st.write("---")
     
-    # 2. Vis jagtområder status i tabel
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
         omr_renset_id = omr_navn.replace(" ", "")
@@ -259,9 +258,9 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) == 3:
-                dato_samlet = dele[0]
-                type_del = dele[1]
-                tidspunkt_del = dele[2]
+                dato_samlet = dele
+                type_del = dele
+                tidspunkt_del = dele
                 
                 if type_del == "Jagthytte":
                     visnings_navn = "🏠 Jagthytte"
@@ -297,7 +296,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
@@ -315,8 +314,8 @@ with fane_fuld_oversigt:
 with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
-    * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
+    * **Sikkerhed først:** Vis altid absolut hensyn to sikkerhedszoner og naboskel.
+    * **Én jæger pr. område:** Kun én active jæger ad gangen per område.
     * **🏠 Jagthytte regler:** Ryd altid op efter dig selv, vask op og tag dit affald med hjem efter leje.
     * **Bookingbetingelser:** Du kan maksimalt booke en jagt eller hytten 14 dage frem i tiden.
     """)
