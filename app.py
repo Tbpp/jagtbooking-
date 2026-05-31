@@ -116,7 +116,7 @@ kontakt_data = [
     {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
     {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
 ]
-# --- OMRAADE KONFIGURATION (Kun jagtrelevante områder her) ---
+# --- OMRAADE KONFIGURATION ---
 st.session_state.omraader = {
     1: "Stige 1", 2: "Stige 2", 3: "Stige 3", 4: "Stige 4", 5: "Stige 5", 
     6: "Tårn 1", 7: "Tårn 2", 8: "Tårn 3", 9: "Tårn 4", 10: "Tårn 5",
@@ -157,7 +157,7 @@ if st.sidebar.button("Log ud"):
 
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
-# --- FANER (Nu med separat hyttefane) ---
+# --- FANER ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
     "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
@@ -176,7 +176,7 @@ with fane_book:
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
     
     if st.button("Bekræft og book jagt", type="primary"):
-        # RETTELSE: Vi bruger områdets rigtige tekstnavn i nøglen i stedet for ID-tallet
+        # FAST RETTELSE: Henter områdets fulde navn som tekst (f.eks. "Stige 1") fremfor blot ID-tallet
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
         booking_noegle = f"{dato_streng}_{omr_navn_tekst}_{valgt_tidspunkt}".replace(" ", "_")
         
@@ -185,24 +185,28 @@ with fane_book:
             st.error(f"❌ Området er optaget! {omr_navn_tekst} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
-            if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
+            
+            succes, svar_tekst = send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat)
+            
+            if succes:
                 st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {dato_streng}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at kolonnenavnene i Google Sheets er præcis som i API'en.")
+                st.error("🚨 **Kritisk API Fejl fundet!**")
+                st.code(svar_tekst, language="text")
 
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
-    st.header("🏠 Reservation av Jagthytten")
+    st.header("🏠 Reservation af Jagthytten")
     st.info("Her kan du reservere jagthytten til overnatning, arrangementer eller arbejdsdage. Hytten bookes altid for hele døgnet.")
     
     hytte_dato = st.date_input("Vælg dato for hytte-booking (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="hytte_dato_valg")
     hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
     hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'")
     
-    # RETTELSE: Klar tekststreng til hytte-nøglen, som SheetDB og jeres Google Sheet kan forstå uden fejl
-    hytte_noegle = f"{hytte_dato_str}_Hytte_Hele_Dagen"
+    # FAST RETTELSE: Struktur i klartekst så SheetDB modtager værdier uden syntaks-afvisninger
+    hytte_noegle = f"{hytte_dato_str}_Jagthytte_Hele_Dagen"
     
     if hytte_noegle in st.session_state.bookinger:
         hytte_booker = st.session_state.bookinger[hytte_noegle]["navn"]
@@ -210,12 +214,16 @@ with fane_hytte:
     else:
         if st.button("Reserver hytten nu 🔑", type="primary"):
             nyt_hytte_notat = hytte_notat.strip() if hytte_notat.strip() else "Hytte-booking"
-            if send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat):
+            
+            succes, svar_tekst = send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat)
+            
+            if succes:
                 st.success(f"🎉 Godkendt! Jagthytten er nu reserveret til dig d. {hytte_dato_str}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Kunne ikke oprette forbindelse til databasen. Tjek din SheetDB forbindelse.")
+                st.error("🚨 **Kritisk API Fejl fundet ved hyttebooking!**")
+                st.code(svar_tekst, language="text")
 
 # --- FANE 3: TJEK DATO ---
 with fane_tjek_dato:
