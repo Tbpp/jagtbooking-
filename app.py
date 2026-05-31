@@ -37,7 +37,7 @@ def aflyst_i_google_sheet(noegle):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle bookinger lynhurtigt fra Google Sheet via SheetDB API'en"""
+    """Henter alle bookinger og fjerner usynlige mellemrum fra jeres Google Sheet"""
     try:
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
@@ -48,11 +48,12 @@ def hent_aktuelle_bookinger():
             if isinstance(data, list):
                 for række in data:
                     if "noegle" in række and række["noegle"] and str(række["noegle"]).strip() != "":
+                        # FAST RETTELSE: .strip() fjerner det skjulte mellemrum fra dit Google Sheet
                         n_noegle = str(række["noegle"]).strip()
                         bookinger_dict[n_noegle] = {
                             "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and række["jaeger_id"] and str(række["jaeger_id"]).isdigit() else 0,
                             "navn": str(række["navn"]) if "navn" in række else "Ukendt",
-                            "tidspunkt": str(række["tidspunkt"]) if "tidspunkt" in række else "Morgen",
+                            "tidspunkt": str(række["tidspunkt"]).strip() if "tidspunkt" in række else "Morgen",
                             "notat": str(række["notat"]) if "notat" in række and pd.notna(række["notat"]) else "-"
                         }
         return bookinger_dict
@@ -178,7 +179,6 @@ with fane_book:
     
     if st.button("Bekræft og book jagt", type="primary"):
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
-        # BINDER NØGLEN SAMMEN MED UNDERSTREGNINGER SOM DET GAMLE FORMAT
         booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
@@ -255,9 +255,9 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) == 3:
-                dato_samlet = dele
-                omr_id_del = dele
-                tidspunkt_del = dele
+                dato_samlet = dele[0]
+                omr_id_del = dele[1]
+                tidspunkt_del = dele[2]
                 
                 try:
                     omr_id_int = int(omr_id_del)
@@ -291,7 +291,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
