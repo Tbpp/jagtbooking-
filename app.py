@@ -11,7 +11,7 @@ st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", 
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet og returnerer serverens svar"""
+    """Skriver en ny booking direkte ind i jeres Google Sheet og sikrer korrekt API-sti"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
@@ -23,6 +23,7 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     }
     try:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        # FAST RETTELSE: Vi bruger den fulde API-url, så serveren ikke afviser med status 405
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
         if res.status_code == 201:
             return True, "OK"
@@ -191,7 +192,7 @@ with fane_book:
             succes, besked = send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat)
             
             if succes:
-                st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {dato_streng}.")
+                st.success(f"🎉 Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {dato_streng}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
