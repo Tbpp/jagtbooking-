@@ -11,7 +11,7 @@ st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", 
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet som sikker tekst"""
+    """Skriver en ny booking direkte ind i jeres Google Sheet"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
@@ -37,7 +37,7 @@ def aflyst_i_google_sheet(noegle):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle bookinger lynhurtigt fra Google Sheet via SheetDB API'en"""
+    """Henter alle bookinger fra Google Sheet via SheetDB API'en"""
     try:
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
@@ -178,7 +178,7 @@ with fane_book:
     
     if st.button("Bekræft og book jagt", type="primary"):
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
-        booking_noegle = f"{dato_streng}-id{valgt_omraade_id}-{valgt_tidspunkt}"
+        booking_noegle = f"{dato_streng}-post{valgt_omraade_id}-{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
@@ -191,7 +191,7 @@ with fane_book:
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
+                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at genindlæse din app.")
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
@@ -201,7 +201,7 @@ with fane_hytte:
     hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
     hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'", key="hytte_notat")
     
-    hytte_noegle = f"{hytte_dato_str}-id16-HeleDagen"
+    hytte_noegle = f"{hytte_dato_str}-hytte16-HeleDagen"
     
     if hytte_noegle in st.session_state.bookinger:
         hytte_booker = st.session_state.bookinger[hytte_noegle]["navn"]
@@ -225,7 +225,7 @@ with fane_tjek_dato:
     st.write(f"### Status for d. {tjek_dato_streng}:")
     
     # 1. Vis hytte status først
-    hytte_tjek_noegle = f"{tjek_dato_streng}-id16-HeleDagen"
+    hytte_tjek_noegle = f"{tjek_dato_streng}-hytte16-HeleDagen"
     if hytte_tjek_noegle in st.session_state.bookinger:
         st.warning(f"🏠 **Jagthytten:** Reserveret af {st.session_state.bookinger[hytte_tjek_noegle]['navn']} ({st.session_state.bookinger[hytte_tjek_noegle]['notat']})")
     else:
@@ -236,8 +236,8 @@ with fane_tjek_dato:
     # 2. Vis jagtområder status i tabel
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
-        morgen_noegle = f"{tjek_dato_streng}-id{omr_id}-Morgen"
-        aften_noegle = f"{tjek_dato_streng}-id{omr_id}-Aften"
+        morgen_noegle = f"{tjek_dato_streng}-post{omr_id}-Morgen"
+        aften_noegle = f"{tjek_dato_streng}-post{omr_id}-Aften"
         morgen_status = "Ledig 🟢"
         aften_status = "Ledig 🟢"
         if morgen_noegle in st.session_state.bookinger:
@@ -256,20 +256,21 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("-")
             if len(dele) == 3:
-                dato_samlet = dele[0]
-                omr_id_del = dele[1]
-                tidspunkt_del = dele[2]
+                dato_samlet = dele
+                omr_id_del = dele
+                tidspunkt_del = dele
                 
-                try:
-                    omr_id_int = int(omr_id_del.replace("id", ""))
-                except:
-                    continue
-                
-                if omr_id_int == 16:
+                # Fejlsikret udpakning af ID'er fra databasenøklerne
+                if "hytte" in omr_id_del:
                     visnings_navn = "🏠 Jagthytte"
-                    tidspunkt_del = "Hele døgnet"
+                elif "post" in omr_id_del:
+                    try:
+                        post_id = int(omr_id_del.replace("post", ""))
+                        visnings_navn = st.session_state.omraader.get(post_id, "Ukendt område")
+                    except:
+                        visnings_navn = "Ukendt post"
                 else:
-                    visnings_navn = st.session_state.omraader.get(omr_id_int, "Ukendt")
+                    visnings_navn = "Ældre booking-format"
                 
                 if tidspunkt_del == "HeleDagen":
                     tidspunkt_del = "Hele døgnet"
@@ -292,7 +293,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
