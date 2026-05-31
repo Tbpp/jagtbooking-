@@ -7,11 +7,11 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE TIL SHEETDB ---
-SHEETDB_API_URL = "https://sheetdb.io"
+# --- NY DATABASEFORBINDELSE TIL JERS NYE SHEET ---
+SHEETDB_API_URL = "https://sheetdb.io/api/v1/b3xahif5mv1vr"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet og sikrer korrekt API-sti"""
+    """Skriver en ny booking direkte ind i jeres Google Sheet"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
@@ -23,17 +23,13 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     }
     try:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
-        # FAST RETTELSE: Vi bruger den fulde API-url, så serveren ikke afviser med status 405
         res = requests.post(SHEETDB_API_URL, json=payload, headers=headers)
-        if res.status_code == 201:
-            return True, "OK"
-        else:
-            return False, f"Server Statuskode: {res.status_code} | Svar: {res.text}"
-    except Exception as e:
-        return False, f"Netværksfejl i Python: {str(e)}"
+        return res.status_code == 201
+    except:
+        return False
 
 def aflyst_i_google_sheet(noegle):
-    """Sletter en booking i jeres Google Sheet live baseret på nøglen"""
+    """Sletter en booking live baseret på nøglen"""
     try:
         res = requests.delete(f"{SHEETDB_API_URL}/noegle/{noegle}")
         return res.status_code == 200
@@ -41,7 +37,7 @@ def aflyst_i_google_sheet(noegle):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle bookinger lynhurtigt fra Google Sheet via SheetDB API'en"""
+    """Henter alle bookinger lynhurtigt og fejlfrit fra det nye sheet"""
     try:
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
@@ -189,15 +185,12 @@ with fane_book:
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
             
-            succes, besked = send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat)
-            
-            if succes:
-                st.success(f"🎉 Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {dato_streng}.")
+            if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
+                st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {idag}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke gemme i databasen. Serverens svar står herunder:")
-                st.code(besked, language="text")
+                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
@@ -216,15 +209,12 @@ with fane_hytte:
         if st.button("Reserver hytten nu 🔑", type="primary"):
             nyt_hytte_notat = hytte_notat.strip() if hytte_notat.strip() else "Hytte-booking"
             
-            succes, besked = send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat)
-            
-            if succes:
+            if send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat):
                 st.success(f"🎉 Godkendt! Jagthytten er nu reserveret til dig d. {hytte_dato_str}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Kunne ikke reservere hytten. Serverens svar står herunder:")
-                st.code(besked, language="text")
+                st.error("❌ Kunne ikke oprette forbindelse til databasen. Tjek din SheetDB opsætning.")
 
 # --- FANE 3: TJEK DATO ---
 with fane_tjek_dato:
@@ -263,9 +253,9 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) == 3:
-                dato_samlet = dele
-                omr_id_del = dele
-                tidspunkt_del = dele
+                dato_samlet = dele[0]
+                omr_id_del = dele[1]
+                tidspunkt_del = dele[2]
                 
                 try:
                     omr_id_int = int(omr_id_del)
@@ -299,7 +289,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
