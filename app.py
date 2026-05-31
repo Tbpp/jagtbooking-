@@ -117,8 +117,21 @@ kontakt_data = [
 ]
 
 st.session_state.omraader = {
-    1: "Område A", 2: "Område B", 3: "Område C", 4: "Område D", 5: "Område E",
-    6: "Område F", 7: "Område G", 8: "Område H", 9: "Område I", 10: "Område J"
+     1: "Stige 1", 
+    2: "Stige 2", 
+    3: "Stige 3", 
+    4: "Stige 4", 
+    5: "Stige 5", 
+    6: "Tårn 1", 
+    7: "Tårn 2", 
+    8: "Tårn 3", 
+    9: "Tårn 4", 
+    10: "Tårn 5",
+    11: "Område F", 
+    12: "Område G", 
+    13: "Område H", 
+    14: "Område I", 
+    15: "Område J"
 }
 if "logget_ind" not in st.session_state:
     st.session_state.logget_ind = False
