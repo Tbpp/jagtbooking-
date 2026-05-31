@@ -176,32 +176,32 @@ with fane_book:
     notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'")
     
     if st.button("Bekræft og book jagt", type="primary"):
-        omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
+        # Vi bruger tal-id i nøglen, så det stemmer overens med kalender-separatoren
         booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
-            st.error(f"❌ Området er optaget! {omr_navn_tekst} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
+            st.error(f"❌ Området er optaget! {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
         else:
             nyt_notat = notat_input.strip() if notat_input.strip() else "-"
             
-            # RETTELSE: Modtager nu kun én variabel (True/False) præcis som din Del 1 returnerer
             if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
-                st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {dato_streng}.")
+                st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {st.session_state.omraader[valgt_omraade_id]} d. {dato_streng}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at kolonnenavnene i dit Google Sheet er små bogstaver.")
+                st.error("❌ Fejl: Kunne ikke forbinde til databasen. Sørg for at genindlæse din app.")
 
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
-    st.info("Her kan du reservere jagthytten til overnatning, arrangementer eller arbejdsdage. Hytten bookes altid for hele døgnet.")
+    st.info("Hytten bookes altid for hele døgnet ad gangen.")
     
     hytte_dato = st.date_input("Vælg dato for hytte-booking (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="hytte_dato_valg")
     hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
     hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'")
     
+    # ID 16 bruges fast til hytten
     hytte_noegle = f"{hytte_dato_str}_16_Hele_Dagen"
     
     if hytte_noegle in st.session_state.bookinger:
@@ -211,13 +211,13 @@ with fane_hytte:
         if st.button("Reserver hytten nu 🔑", type="primary"):
             nyt_hytte_notat = hytte_notat.strip() if hytte_notat.strip() else "Hytte-booking"
             
-            # RETTELSE: Tilpasset den oprindelige enkelt-variabel funktion
             if send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat):
                 st.success(f"🎉 Godkendt! Jagthytten er nu reserveret til dig d. {hytte_dato_str}.")
                 time.sleep(1.5)
                 st.rerun()
             else:
                 st.error("❌ Kunne ikke oprette forbindelse til databasen. Tjek din SheetDB opsætning.")
+
 
 
 # --- FANE 3: TJEK DATO ---
