@@ -8,7 +8,6 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- DATABASEFORBINDELSE TIL SHEETDB ---
-# FAST RETTELSE: Dit API-ID er nu sat korrekt på plads igen
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
@@ -161,7 +160,7 @@ st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
 # --- FANER ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
+    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Rules & Info", "📞 Medlemsliste & Kontakt"
 ])
 
 # --- FANE 1: OPRET JAGTBOOKING ---
@@ -170,7 +169,6 @@ with fane_book:
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
-    # FAST RETTELSE: Færdiggjort linjen, som var afbrudt
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
     dato_streng = valgt_dato.strftime("%Y-%m-%d")
     
@@ -180,8 +178,8 @@ with fane_book:
     
     if st.button("Bekræft og book jagt", type="primary"):
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
-        omr_sammensat = omr_navn_tekst.replace(" ", "")
-        booking_noegle = f"{dato_streng}_{omr_sammensat}_{valgt_tidspunkt}"
+        # RETTELSE: Vi bruger det oprindelige format med understregninger (_), som allerede ligger i dit Google Sheet!
+        booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
             nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
@@ -204,7 +202,8 @@ with fane_hytte:
     hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
     hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'", key="hytte_notat")
     
-    hytte_noegle = f"{hytte_dato_str}_Jagthytte_HeleDagen"
+    # Fast hytte format med understregninger
+    hytte_noegle = f"{hytte_dato_str}_16_HeleDagen"
     
     if hytte_noegle in st.session_state.bookinger:
         hytte_booker = st.session_state.bookinger[hytte_noegle]["navn"]
@@ -227,7 +226,7 @@ with fane_tjek_dato:
     tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
     st.write(f"### Status for d. {tjek_dato_streng}:")
     
-    hytte_tjek_noegle = f"{tjek_dato_streng}_Jagthytte_HeleDagen"
+    hytte_tjek_noegle = f"{tjek_dato_streng}_16_HeleDagen"
     if hytte_tjek_noegle in st.session_state.bookinger:
         st.warning(f"🏠 **Jagthytten:** Reserveret af {st.session_state.bookinger[hytte_tjek_noegle]['navn']} ({st.session_state.bookinger[hytte_tjek_noegle]['notat']})")
     else:
@@ -237,9 +236,8 @@ with fane_tjek_dato:
     
     data_tjek_liste = []
     for omr_id, omr_navn in st.session_state.omraader.items():
-        omr_renset_id = omr_navn.replace(" ", "")
-        morgen_noegle = f"{tjek_dato_streng}_{omr_renset_id}_Morgen"
-        aften_noegle = f"{tjek_dato_streng}_{omr_renset_id}_Aften"
+        morgen_noegle = f"{tjek_dato_streng}_{omr_id}_Morgen"
+        aften_noegle = f"{tjek_dato_streng}_{omr_id}_Aften"
         morgen_status = "Ledig 🟢"
         aften_status = "Ledig 🟢"
         if morgen_noegle in st.session_state.bookinger:
@@ -258,22 +256,20 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) == 3:
-                dato_samlet = dele
-                type_del = dele
-                tidspunkt_del = dele
+                dato_samlet = dele[0]
+                omr_id_del = dele[1]
+                tidspunkt_del = dele[2]
                 
-                if type_del == "Jagthytte":
+                try:
+                    omr_id_int = int(omr_id_del)
+                except:
+                    continue
+                
+                if omr_id_int == 16:
                     visnings_navn = "🏠 Jagthytte"
                     tidspunkt_del = "Hele døgnet"
                 else:
-                    if "Stige" in type_del:
-                        visnings_navn = type_del.replace("Stige", "Stige ")
-                    elif "Tårn" in type_del:
-                        visnings_navn = type_del.replace("Tårn", "Tårn ")
-                    elif "Område" in type_del:
-                        visnings_navn = type_del.replace("Område", "Område ")
-                    else:
-                        visnings_navn = type_del
+                    visnings_navn = st.session_state.omraader.get(omr_id_int, "Ukendt")
                 
                 if tidspunkt_del == "HeleDagen":
                     tidspunkt_del = "Hele døgnet"
@@ -296,7 +292,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
@@ -314,8 +310,8 @@ with fane_fuld_oversigt:
 with fane_regler_info:
     st.header("📜 Praktisk information & Jagtregler")
     st.markdown("""
-    * **Sikkerhed først:** Vis altid absolut hensyn to sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én active jæger ad gangen per område.
+    * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
+    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
     * **🏠 Jagthytte regler:** Ryd altid op efter dig selv, vask op og tag dit affald med hjem efter leje.
     * **Bookingbetingelser:** Du kan maksimalt booke en jagt eller hytten 14 dage frem i tiden.
     """)
