@@ -160,7 +160,7 @@ st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
 # --- FANER ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Rules & Info", "📞 Medlemsliste & Kontakt"
+    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
 ])
 
 # --- FANE 1: OPRET JAGTBOOKING ---
@@ -178,7 +178,7 @@ with fane_book:
     
     if st.button("Bekræft og book jagt", type="primary"):
         omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
-        # RETTELSE: Vi bruger det oprindelige format med understregninger (_), som allerede ligger i dit Google Sheet!
+        # BINDER NØGLEN SAMMEN MED UNDERSTREGNINGER SOM DET GAMLE FORMAT
         booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
         
         if booking_noegle in st.session_state.bookinger:
@@ -202,7 +202,6 @@ with fane_hytte:
     hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
     hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'", key="hytte_notat")
     
-    # Fast hytte format med understregninger
     hytte_noegle = f"{hytte_dato_str}_16_HeleDagen"
     
     if hytte_noegle in st.session_state.bookinger:
@@ -256,9 +255,9 @@ with fane_fuld_oversigt:
         for noegle, info in st.session_state.bookinger.items():
             dele = noegle.split("_")
             if len(dele) == 3:
-                dato_samlet = dele[0]
-                omr_id_del = dele[1]
-                tidspunkt_del = dele[2]
+                dato_samlet = dele
+                omr_id_del = dele
+                tidspunkt_del = dele
                 
                 try:
                     omr_id_int = int(omr_id_del)
@@ -292,7 +291,7 @@ with fane_fuld_oversigt:
                 aflys_valg = st.selectbox(
                     "Vælg den reservation du vil slette:", 
                     options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
+                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values})"
                 )
                 if st.button("Slet valgte reservation", type="secondary"):
                     if aflyst_i_google_sheet(aflys_valg):
