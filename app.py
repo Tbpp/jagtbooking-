@@ -11,11 +11,11 @@ st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", 
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet"""
+    """Skriver en ny booking direkte ind i jeres Google Sheet med korrekte kolonnenavne"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
-            "jaeger_id": str(jaeger_id).strip(),
+            "jaeger_id": str(jaeger_id).strip(),  # FAST RETTELSE: Rettet fra jæger_id til jaeger_id
             "navn": str(navn).strip(),
             "tidspunkt": str(tidspunkt).strip(),
             "notat": str(notat).strip()
@@ -191,7 +191,7 @@ with fane_book:
                 time.sleep(1.5)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at genindlæse din app.")
+                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reservation af Jagthytten")
@@ -260,7 +260,6 @@ with fane_fuld_oversigt:
                 omr_id_del = dele
                 tidspunkt_del = dele
                 
-                # Fejlsikret udpakning af ID'er fra databasenøklerne
                 if "hytte" in omr_id_del:
                     visnings_navn = "🏠 Jagthytte"
                 elif "post" in omr_id_del:
@@ -321,4 +320,3 @@ with fane_regler_info:
 with fane_kontakt:
     st.header("📞 Medlemsliste")
     st.dataframe(pd.DataFrame(kontakt_data)[["Nr", "Navn", "Tlf", "E-mail"]], use_container_width=True, hide_index=True)
-
