@@ -7,8 +7,8 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- KORREKT DATABASEFORBINDELSE TIL SHEETDB ---
-SHEETDB_API_URL = "https://sheetdb.io"
+# --- DATABASEFORBINDELSE MED DIT NYE LINK ---
+SHEETDB_API_URL = "https://sheetdb.io/api/v1/11bgx9asa3yy1"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny booking direkte ind i jeres Google Sheet"""
@@ -135,7 +135,7 @@ if st.sidebar.button("Log ud"):
     st.rerun()
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
-# --- FANER (KONTAKT ER FJERNET) ---
+# --- FANER (KONTAKT-FANEN ER FJERNET HENT) ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
     "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
@@ -247,11 +247,10 @@ with fane_fuld_oversigt:
 
 # --- FANE 5: REGLER & INFO ---
 with fane_regler_info:
-    st.header("📜 Priser, Rules & Praktisk Info")
+    st.header("📜 Priser, Regler & Praktisk Info")
     st.markdown("""
     * **Tidsbegrænsning**: Du kan højst booke et jagtområde **14 dage frem** i tiden.
     * **Kvoter**: Husk at registrere alt nedlagt vildt til bestyrelsen umiddelbart efter jagten.
     * **Gæster**: Hvis du har gæster med, skal det noteres i feltet ved oprettelse.
     * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
     """)
-
