@@ -7,8 +7,8 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE TIL SHEETDB ---
-SHEETDB_API_URL = "https://sheetdb.io"
+# --- DATABASEFORBINDELSE TIL DIT HELT NYE SHEET ---
+SHEETDB_API_URL = "https://sheetdb.io/api/v1/fdjeic0hcdv5y"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny jagtbooking ind i jeres Google Sheet (Ark1)"""
@@ -59,7 +59,7 @@ def hent_aktuelle_bookinger():
     except:
         return {}
 
-# --- FUNKTIONER TIL HYTTE-FANEN (LØSNING B) ---
+# --- FUNKTIONER TIL HYTTE-FANEN ---
 def send_hytte_til_google_sheet(noegle, jaeger_id, navn, dato):
     """Skriver en ny hyttebooking ind i fanebladet hytte"""
     payload = {
