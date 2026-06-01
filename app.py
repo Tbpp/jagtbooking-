@@ -7,7 +7,7 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- NY DATABASEFORBINDELSE TIL JERS NYE SHEET ---
+# --- DATABASEFORBINDELSE TIL SHEETDB ---
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
@@ -88,34 +88,12 @@ h1, h2, h3, p, label {
 """
 st.markdown(baggrunds_css, unsafe_allow_html=True)
 
-# --- MEDLEMSDATA ---
-kontakt_data = [
-    {"Nr": 1, "Navn": "Lasse Lichon Hesthaven", "Tlf": "28 57 23 62", "E-mail": "lichon10@hotmail.com"},
-    {"Nr": 2, "Navn": "Alexander Knudsen", "Tlf": "31 14 94 08", "E-mail": "alekproscore@hotmail.com"},
-    {"Nr": 3, "Navn": "Thomas Jøns", "Tlf": "42 17 78 07", "E-mail": "cuba_joens@hotmail.com"},
-    {"Nr": 4, "Navn": "Jørgen Thomsen", "Tlf": "49 40 50 64", "E-mail": "thomsen777@gmail.com"},
-    {"Nr": 5, "Navn": "Per Eli Løfqvist", "Tlf": "30 50 32 12", "E-mail": "loefqvist@gmail.com"},
-    {"Nr": 6, "Navn": "Peter Aaen", "Tlf": "20 92 34 14", "E-mail": "peter.aaen46@gmail.com"},
-    {"Nr": 7, "Navn": "Morten Ransborg", "Tlf": "20 18 95 91", "E-mail": "morten@ransborg.net"},
-    {"Nr": 8, "Navn": "Steffen Carlsen", "Tlf": "53 55 49 94", "E-mail": "steffencarlsen86@gmail.com"},
-    {"Nr": 9, "Navn": "Morten Mæng Pedersen", "Tlf": "28 91 69 15", "E-mail": "mortenmaeng@hotmail.com"},
-    {"Nr": 10, "Navn": "Ole Libak Christensen", "Tlf": "31 50 35 55", "E-mail": "ole.libak@gmail.com"},
-    {"Nr": 11, "Navn": "Christian Ringstrøm Andersen", "Tlf": "61 26 17 38", "E-mail": "Christian.ringstroem@gmail.com"},
-    {"Nr": 12, "Navn": "Tom Erik Houen", "Tlf": "40 59 10 59", "E-mail": "tomhouen@gmail.com"},
-    {"Nr": 13, "Navn": "Jan Carstens", "Tlf": "61 80 60 00", "E-mail": "janc280656@gmail.com"},
-    {"Nr": 14, "Navn": "Benjamin Kirkeby G. Carstenskiold", "Tlf": "31 72 43 02", "E-mail": "Hj01bg@gmail.com"},
-    {"Nr": 15, "Navn": "Lars Højmose Kristensen", "Tlf": "30 24 51 07", "E-mail": "lakris@proton.me"},
-    {"Nr": 16, "Navn": "Peter Hahn Boelt", "Tlf": "60 67 50 19", "E-mail": "peterhbmail@proton.me"},
-    {"Nr": 17, "Navn": "Jonathan Brun Sønderbæk", "Tlf": "20 60 89 35", "E-mail": "Jona811k@yahoo.dk"},
-    {"Nr": 18, "Navn": "Mathies Boelt", "Tlf": "23 96 83 72", "E-mail": "Mathies-boelt@hotmail.com"},
-    {"Nr": 19, "Navn": "Per Behrmann", "Tlf": "50 58 17 41", "E-mail": "perbehrmann@hotmail.com"},
-    {"Nr": 20, "Navn": "Tonni Bastrup Pedersen", "Tlf": "23 47 74 02", "E-mail": "tonnibastrup@gmail.com"},
-    {"Nr": 21, "Navn": "Peter Michael Nielsen", "Tlf": "23 72 62 25", "E-mail": "pmn@bbnpost.dk"},
-    {"Nr": 22, "Navn": "Simon Noer Burkal", "Tlf": "28 74 70 45", "E-mail": "Simon@burkal.dk"},
-    {"Nr": 23, "Navn": "Carsten Bjerregaard", "Tlf": "30 13 10 27", "E-mail": "Cbj.bjerregaard@gmail.com"},
-    {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
-    {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
-]
+# --- SIKKER MEDLEMSDATA FRA STREAMLIT SECRETS ---
+try:
+    kontakt_data = st.secrets["medlemmer"]
+except:
+    st.error("❌ Fejl: Medlemslisten kunne ikke hentes fra appens Secrets indstillinger.")
+    st.stop()
 
 # --- OMRAADE KONFIGURATION ---
 st.session_state.omraader = {
@@ -138,7 +116,7 @@ if not st.session_state.logget_ind:
     if len(renset_indtastet) == 8:
         fundet_bruger = None
         for medlem in kontakt_data:
-            if renset_indtastet == medlem["Tlf"].replace(" ", "").strip():
+            if renset_indtastet == str(medlem["Tlf"]).replace(" ", "").strip():
                 fundet_bruger = medlem
                 break
         if fundet_bruger:
@@ -157,7 +135,7 @@ if st.sidebar.button("Log ud"):
     st.rerun()
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
-# --- FANER ---
+# --- FANER (KONTAKT-FANEN ER FJERNET) ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
     "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
@@ -170,7 +148,7 @@ with fane_book:
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     
     idag = datetime.today().date()
-    maks_dato = idag + timedelta(days=14)
+    maks_dato = idags_dato = idag + timedelta(days=14)
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=maks_dato, value=idag)
     
     valgt_tidspunkt = st.radio("Vælg tidspunkt:", ["Morgen", "Aften"])
