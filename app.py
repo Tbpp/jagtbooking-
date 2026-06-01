@@ -59,7 +59,7 @@ def hent_aktuelle_bookinger():
     except:
         return {}
 
-# --- NYE FUNKTIONER TIL HYTTE-FANEN (LØSNING B) ---
+# --- FUNKTIONER TIL HYTTE-FANEN (LØSNING B) ---
 def send_hytte_til_google_sheet(noegle, jaeger_id, navn, dato):
     """Skriver en ny hyttebooking ind i fanebladet hytte"""
     payload = {
@@ -104,7 +104,7 @@ def hent_hytte_bookinger():
     except:
         return {}
 
-# Indlæs altid de allernyeste data live fra skyen ved opdatering
+# Indlæs data live fra skyen ved opdatering
 st.session_state.bookinger = hent_aktuelle_bookinger()
 st.session_state.hytte_bookinger = hent_hytte_bookinger()
 
@@ -220,14 +220,12 @@ with fane_book:
             else:
                 st.error("❌ Kunne ikke oprette forbindelse til databasen. Prøv igen.")
 
-# --- FANE 2: BOOK JAGTHYTTE (LØSNING B) ---
+# --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
     st.header("🏠 Reserver Jagthytten til overnatning")
     st.write("Her kan du booke hele hytten til overnatning eller arrangementer.")
     
-    idag = datetime.today().date()
-    maks_hytte_dato = idag + timedelta(days=60) # Giver mulighed for at booke hytten 60 dage frem
-    
+    maks_hytte_dato = idag + timedelta(days=60)
     valgt_hytte_dato = st.date_input("Vælg dato for hytte-reservation:", min_value=idag, max_value=maks_hytte_dato, value=idag, key="hytte_dato_input")
     hytte_noegle = f"hytte_{valgt_hytte_dato}"
     
@@ -264,11 +262,9 @@ with fane_hytte:
             })
         
         df_hytte = pd.DataFrame(hytte_liste)
-        # Sorter efter dato, så det er nemt at læse
-        df_hytte = df_hytte.sort_value(by="Reserveret dato")
+        df_hytte = df_hytte.sort_values(by="Reserveret dato")
         st.dataframe(df_hytte.drop(columns=["Nøgle", "jaeger_id"]), use_container_width=True, hide_index=True)
         
-        # Mulighed for at aflyse sin egen hyttebooking
         st.write("---")
         st.subheader("🗑️ Aflys din hytte-reservation")
         mine_hytte_bookinger = {k: v for k, v in st.session_state.hytte_bookinger.items() if v["jaeger_id"] == st.session_state.bruger_info["Nr"]}
@@ -292,7 +288,7 @@ with fane_hytte:
 # --- FANE 3: TJEK SPECIFIK DATO ---
 with fane_tjek_dato:
     st.header("🔍 Se ledige og bookede områder")
-    tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=idag)
+    tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=idag, key="tjek_dato_input")
     st.write(f"### Oversigt for d. {tjek_dato}")
     
     data_oversigt = []
