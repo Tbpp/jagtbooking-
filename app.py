@@ -136,8 +136,8 @@ if st.sidebar.button("Log ud"):
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
 # --- FANER ---
-fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", 
+fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
+    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
 
 # --- FANE 1: OPRET JAGTBOOKING ---
@@ -254,4 +254,3 @@ with fane_regler_info:
     * **Gæster**: Hvis du har gæster med, skal det noteres i feltet ved oprettelse.
     * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
     """)
-
