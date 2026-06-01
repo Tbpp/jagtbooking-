@@ -8,7 +8,7 @@ import time
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
 # --- NY DATABASEFORBINDELSE TIL JERS NYE SHEET ---
-SHEETDB_API_URL = "https://sheetdb.io/api/v1/b3xahif5mv1vr"
+SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny booking direkte ind i jeres Google Sheet"""
@@ -116,6 +116,7 @@ kontakt_data = [
     {"Nr": 24, "Navn": "Rene' Andersen", "Tlf": "22 44 62 22", "E-mail": "Rahunter13@gmail.com"},
     {"Nr": 25, "Navn": "Kristian Hæsum Pedersen", "Tlf": "60 19 06 26", "E-mail": "Khaesum@gmail.com"}
 ]
+
 # --- OMRAADE KONFIGURATION ---
 st.session_state.omraader = {
     1: "Stige 1", 2: "Stige 2", 3: "Stige 3", 4: "Stige 4", 5: "Stige 5", 
@@ -154,167 +155,124 @@ if st.sidebar.button("Log ud"):
     st.session_state.logget_ind = False
     st.session_state.bruger_info = None
     st.rerun()
-
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
 # --- FANER ---
-fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info, fane_kontakt = st.tabs([
-    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info", "📞 Medlemsliste & Kontakt"
+fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
+    "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
 
 # --- FANE 1: OPRET JAGTBOOKING ---
 with fane_book:
     st.header("Opret ny jagtreservation")
     st.success(f"✍️ Logget ind som: **{st.session_state.bruger_info['Navn']}**")
+    
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
+    
     idag = datetime.today().date()
-    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="dato_valg")
-    dato_streng = valgt_dato.strftime("%Y-%m-%d")
+    maks_dato = idag + timedelta(days=14)
+    valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=maks_dato, value=idag)
     
-    valgt_tidspunkt_visning = st.radio("Vælg tidspunkt på dagen:", ["Morgen 🌅", "Aften 🌇"])
-    valgt_tidspunkt = "Morgen" if "Morgen" in valgt_tidspunkt_visning else "Aften"
-    notat_input = st.text_input("Tilføj et notat (valgfrit):", placeholder="F.eks. 'Hund med', 'Riffel'", key="jagt_notat")
+    valgt_tidspunkt = st.radio("Vælg tidspunkt:", ["Morgen", "Aften"])
+    bruger_notat = st.text_input("Evt. notat (f.eks. 'Gæst med', 'Rifeljagt'):", value="-")
     
-    if st.button("Bekræft og book jagt", type="primary"):
-        omr_navn_tekst = st.session_state.omraader[valgt_omraade_id]
-        booking_noegle = f"{dato_streng}_{valgt_omraade_id}_{valgt_tidspunkt}"
-        
-        if booking_noegle in st.session_state.bookinger:
-            nuvaerende_booker = st.session_state.bookinger[booking_noegle]["navn"]
-            st.error(f"❌ Området er optaget! {omr_navn_tekst} er allerede booket {valgt_tidspunkt.lower()} d. {dato_streng} af {nuvaerende_booker}.")
+    genereret_noegle = f"{valgt_dato}_{valgt_omraade_id}_{valgt_tidspunkt}"
+    
+    if st.button("Bekræft og opret booking", type="primary"):
+        if genereret_noegle in st.session_state.bookinger:
+            st.error(f"❌ {st.session_state.omraader[valgt_omraade_id]} er allerede booket {valgt_tidspunkt.lower()} d. {valgt_dato}!")
         else:
-            nyt_notat = notat_input.strip() if notat_input.strip() else "-"
-            
-            if send_til_google_sheet(booking_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], valgt_tidspunkt, nyt_notat):
-                st.success(f"✅ Godkendt! Din booking er gemt live i skyen for {omr_navn_tekst} d. {idag}.")
-                time.sleep(1.5)
+            med_succes = send_til_google_sheet(
+                noegle=genereret_noegle,
+                jaeger_id=st.session_state.bruger_info["Nr"],
+                navn=st.session_state.bruger_info["Navn"],
+                tidspunkt=f"{valgt_dato} ({valgt_tidspunkt})",
+                notat=bruger_notat
+            )
+            if med_succes:
+                st.success("🎉 Din booking er gemt i systemet!")
+                time.sleep(1)
                 st.rerun()
             else:
-                st.error("❌ Fejl: Kunne ikke gemme i databasen. Sørg for at du har genindlæst din app.")
+                st.error("❌ Kunne ikke oprette forbindelse til databasen. Prøv igen.")
+
 # --- FANE 2: BOOK JAGTHYTTE ---
 with fane_hytte:
-    st.header("🏠 Reservation af Jagthytten")
-    st.info("Hytten bookes altid for hele døgnet ad gangen.")
-    
-    hytte_dato = st.date_input("Vælg dato for hytte-booking (Maks 14 dage frem):", min_value=idag, max_value=idag + timedelta(days=14), key="hytte_dato_valg")
-    hytte_dato_str = hytte_dato.strftime("%Y-%m-%d")
-    hytte_notat = st.text_input("Formål med bookingen (valgfrit):", placeholder="F.eks. 'Overnatning', 'Generalforsamling'", key="hytte_notat")
-    
-    hytte_noegle = f"{hytte_dato_str}_16_HeleDagen"
-    
-    if hytte_noegle in st.session_state.bookinger:
-        hytte_booker = st.session_state.bookinger[hytte_noegle]["navn"]
-        st.error(f"❌ Hytten er desværre optaget d. {hytte_dato_str}! Den er reserveret af: **{hytte_booker}**.")
-    else:
-        if st.button("Reserver hytten nu 🔑", type="primary"):
-            nyt_hytte_notat = hytte_notat.strip() if hytte_notat.strip() else "Hytte-booking"
-            
-            if send_til_google_sheet(hytte_noegle, st.session_state.bruger_info['Nr'], st.session_state.bruger_info['Navn'], "Hele døgnet", nyt_hytte_notat):
-                st.success(f"🎉 Godkendt! Jagthytten er nu reserveret til dig d. {hytte_dato_str}.")
-                time.sleep(1.5)
-                st.rerun()
-            else:
-                st.error("❌ Kunne ikke oprette forbindelse til databasen. Tjek din SheetDB opsætning.")
+    st.header("🏠 Booking af Jagthytten")
+    st.info("Denne funktion kan udvides med separat tabel i jeres sheet til overnatninger.")
+    st.write("Kontakt formanden eller brug det fælles notatfelt, hvis hytten ønskes reserveret til selskaber.")
 
-# --- FANE 3: TJEK DATO ---
+# --- FANE 3: TJEK SPECIFIK DATO ---
 with fane_tjek_dato:
-    st.header("Hvem er på reviret eller i hytten denne dag?")
-    tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=datetime.today().date(), key="tjek_dato_valg")
-    tjek_dato_streng = tjek_dato.strftime("%Y-%m-%d")
-    st.write(f"### Status for d. {tjek_dato_streng}:")
+    st.header("🔍 Se ledige og bookede områder")
+    tjek_dato = st.date_input("Vælg den dato du vil undersøge:", value=idag)
+    st.write(f"### Oversigt for d. {tjek_dato}")
     
-    hytte_tjek_noegle = f"{tjek_dato_streng}_16_HeleDagen"
-    if hytte_tjek_noegle in st.session_state.bookinger:
-        st.warning(f"🏠 **Jagthytten:** Reserveret af {st.session_state.bookinger[hytte_tjek_noegle]['navn']} ({st.session_state.bookinger[hytte_tjek_noegle]['notat']})")
-    else:
-        st.success("🏠 **Jagthytten:** Er ledig i dag")
+    data_oversigt = []
+    for o_id, o_navn in st.session_state.omraader.items():
+        noegle_morgen = f"{tjek_dato}_{o_id}_Morgen"
+        noegle_aften = f"{tjek_dato}_{o_id}_Aften"
         
-    st.write("---")
-    
-    data_tjek_liste = []
-    for omr_id, omr_navn in st.session_state.omraader.items():
-        morgen_noegle = f"{tjek_dato_streng}_{omr_id}_Morgen"
-        aften_noegle = f"{tjek_dato_streng}_{omr_id}_Aften"
-        morgen_status = "Ledig 🟢"
-        aften_status = "Ledig 🟢"
-        if morgen_noegle in st.session_state.bookinger:
-            morgen_status = f"🔴 {st.session_state.bookinger[morgen_noegle]['navn']} ({st.session_state.bookinger[morgen_noegle]['notat']})"
-        if aften_noegle in st.session_state.bookinger:
-            aften_status = f"🔴 {st.session_state.bookinger[aften_noegle]['navn']} ({st.session_state.bookinger[aften_noegle]['notat']})"
-        data_tjek_liste.append({"Jagtområde": omr_navn, "Morgen 🌅": morgen_status, "Aften 🌇": aften_status})
-    df_tjek = pd.DataFrame(data_tjek_liste)
-    st.dataframe(df_tjek, use_container_width=True, hide_index=True)
+        status_morgen = st.session_state.bookinger[noegle_morgen]["navn"] if noegle_morgen in st.session_state.bookinger else "🟢 Ledig"
+        status_aften = st.session_state.bookinger[noegle_aften]["navn"] if noegle_aften in st.session_state.bookinger else "🟢 Ledig"
+        
+        data_oversigt.append({
+            "Område": o_navn,
+            "Morgen (Solopgang)": status_morgen,
+            "Aften (Solnedgang)": status_aften
+        })
+        
+    df_dag = pd.DataFrame(data_oversigt)
+    st.dataframe(df_dag, use_container_width=True, hide_index=True)
 
-# --- FANE 4: OVERSIGT OG AFBESTILLING ---
+# --- FANE 4: DEN FULDE KALENDEROVERSIGT & AFLYSNING ---
 with fane_fuld_oversigt:
-    st.header("Alle aktive bookinger i skyen")
-    if st.session_state.bookinger:
-        aktive_bookinger_liste = []
-        for noegle, info in st.session_state.bookinger.items():
-            dele = noegle.split("_")
-            if len(dele) == 3:
-                dato_samlet = dele[0]
-                omr_id_del = dele[1]
-                tidspunkt_del = dele[2]
-                
-                try:
-                    omr_id_int = int(omr_id_del)
-                except:
-                    continue
-                
-                if omr_id_int == 16:
-                    visnings_navn = "🏠 Jagthytte"
-                    tidspunkt_del = "Hele døgnet"
-                else:
-                    visnings_navn = st.session_state.omraader.get(omr_id_int, "Ukendt")
-                
-                if tidspunkt_del == "HeleDagen":
-                    tidspunkt_del = "Hele døgnet"
-                
-                aktive_bookinger_liste.append({
-                    "Nøgle": noegle, 
-                    "Dato": dato_samlet, 
-                    "Område/Type": visnings_navn,
-                    "Tidspunkt": tidspunkt_del, 
-                    "Jæger": info["navn"], 
-                    "Jæger_ID": info["jaeger_id"], 
-                    "Notat": info["notat"]
-                })
-        if aktive_bookinger_liste:
-            df_alle = pd.DataFrame(aktive_bookinger_liste).sort_values(by=["Dato", "Tidspunkt"])
-            st.dataframe(df_alle[["Dato", "Område/Type", "Tidspunkt", "Jæger", "Notat"]], use_container_width=True, hide_index=True)
-            st.subheader("❌ Aflys en af dine egne bookinger")
-            egne_bookinger = df_alle[df_alle["Jæger_ID"] == st.session_state.bruger_info["Nr"]]
-            if not egne_bookinger.empty:
-                aflys_valg = st.selectbox(
-                    "Vælg den reservation du vil slette:", 
-                    options=egne_bookinger["Nøgle"].tolist(), 
-                    format_func=lambda x: f"{df_alle[df_alle['Nøgle'] == x]['Dato'].values[0]} - {df_alle[df_alle['Nøgle'] == x]['Område/Type'].values[0]} ({df_alle[df_alle['Nøgle'] == x]['Tidspunkt'].values[0]})"
-                )
-                if st.button("Slet valgte reservation", type="secondary"):
-                    if aflyst_i_google_sheet(aflys_valg):
-                        st.success("Aflysningen er registreret i skyen! Opdaterer...")
-                        time.sleep(1.5)
-                        st.rerun()
-            else:
-                st.info("Du har ikke nogen aktive bookinger i systemet lige nu.")
-        else:
-            st.info("Der er ikke oprettet nogen aktive bookinger endnu.")
+    st.header("📅 Alle aktive reservationer")
+    
+    if not st.session_state.bookinger:
+        st.info("Der er ingen registrerede bookinger i systemet lige nu.")
     else:
-        st.info("Der er ikke oprettet nogen bookinger i systemet endnu.")
+        fuld_liste = []
+        for noegle, info in st.session_state.bookinger.items():
+            fuld_liste.append({
+                "Nøgle": noegle,
+                "Jæger ID": info["jaeger_id"],
+                "Navn": info["navn"],
+                "Tidspunkt & Dato": info["tidspunkt"],
+                "Notat": info["notat"]
+            })
+        
+        df_alle = pd.DataFrame(fuld_liste)
+        st.dataframe(df_alle.drop(columns=["Nøgle"]), use_container_width=True, hide_index=True)
+        
+        st.write("---")
+        st.subheader("❌ Aflys en af dine reservationer")
+        
+        mine_bookinger = {k: v for k, v in st.session_state.bookinger.items() if v["jaeger_id"] == st.session_state.bruger_info["Nr"]}
+        
+        if not mine_bookinger:
+            st.write("Du har ingen aktive reservationer at aflyse.")
+        else:
+            valgt_aflys_noegle = st.selectbox(
+                "Vælg den reservation du vil slette:",
+                options=list(mine_bookinger.keys()),
+                format_func=lambda x: f"{mine_bookinger[x]['tidspunkt']} - {mine_bookinger[x]['notat']}"
+            )
+            
+            if st.button("Slet denne booking", type="secondary"):
+                if aflyst_i_google_sheet(valgt_aflys_noegle):
+                    st.success("🗑️ Reservationen er blevet slettet!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Kunne ikke slette reservationen. Prøv igen.")
 
-# --- FANE 5: INFO ---
+# --- FANE 5: REGLER & INFO ---
 with fane_regler_info:
-    st.header("📜 Praktisk information & Jagtregler")
+    st.header("📜 Priser, Regler & Praktisk Info")
     st.markdown("""
-    * **Sikkerhed først:** Vis altid absolut hensyn til sikkerhedszoner og naboskel.
-    * **Én jæger pr. område:** Kun én aktiv jæger ad gangen per område.
-    * **🏠 Jagthytte regler:** Ryd altid op efter dig selv, vask op og tag dit affald med hjem efter leje.
-    * **Bookingbetingelser:** Du kan maksimalt booke en jagt eller hytten 14 dage frem i tiden.
+    * **Tidsbegrænsning**: Du kan højst booke et jagtområde **14 dage frem** i tiden.
+    * **Kvoter**: Husk at registrere alt nedlagt vildt til bestyrelsen umiddelbart efter jagten.
+    * **Gæster**: Hvis du har gæster med, skal det noteres i feltet ved oprettelse.
+    * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
     """)
-
-# --- FANE 6: LISTE ---
-with fane_kontakt:
-    st.header("📞 Medlemsliste")
-    st.dataframe(pd.DataFrame(kontakt_data)[["Nr", "Navn", "Tlf", "E-mail"]], use_container_width=True, hide_index=True)
-
