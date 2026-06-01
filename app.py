@@ -7,7 +7,7 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE TIL SHEETDB ---
+# --- KORREKT DATABASEFORBINDELSE TIL SHEETDB ---
 SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
@@ -135,7 +135,7 @@ if st.sidebar.button("Log ud"):
     st.rerun()
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
-# --- FANER (KONTAKT-FANEN ER FJERNET) ---
+# --- FANER (KONTAKT ER FJERNET) ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
     "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
@@ -148,7 +148,7 @@ with fane_book:
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     
     idag = datetime.today().date()
-    maks_dato = idags_dato = idag + timedelta(days=14)
+    maks_dato = idag + timedelta(days=14)
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=maks_dato, value=idag)
     
     valgt_tidspunkt = st.radio("Vælg tidspunkt:", ["Morgen", "Aften"])
@@ -164,7 +164,7 @@ with fane_book:
                 noegle=genereret_noegle,
                 jaeger_id=st.session_state.bruger_info["Nr"],
                 navn=st.session_state.bruger_info["Navn"],
-                tidspunkt=f"{valgt_dato} ({valgt_tidspunkt})",
+                tidspunkt=f"{valgt_dato} ({valvalgt_tidspunkt})",
                 notat=bruger_notat
             )
             if med_succes:
