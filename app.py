@@ -255,8 +255,3 @@ with fane_regler_info:
     * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
     """)
 
-# --- FANE 6: KONTAKT ---
-with fane_kontakt:
-    st.header("📞 Kontakt Bestyrelsen")
-    st.write("Medlemslisten er nu skjult af hensyn til persondataloven (GDPR).")
-    st.write("Har du brug for hjælp til systemet eller rettelser til dit telefonnummer, bedes du kontakte den jagtansvarlige direkte på jeres vante kanaler.")
