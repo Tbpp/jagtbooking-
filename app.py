@@ -164,7 +164,7 @@ with fane_book:
                 noegle=genereret_noegle,
                 jaeger_id=st.session_state.bruger_info["Nr"],
                 navn=st.session_state.bruger_info["Navn"],
-                tidspunkt=f"{valgt_dato} ({valvalgt_tidspunkt})",
+                tidspunkt=f"{valgt_dato} ({valgt_tidspunkt})",
                 notat=bruger_notat
             )
             if med_succes:
@@ -247,10 +247,11 @@ with fane_fuld_oversigt:
 
 # --- FANE 5: REGLER & INFO ---
 with fane_regler_info:
-    st.header("📜 Priser, Regler & Praktisk Info")
+    st.header("📜 Priser, Rules & Praktisk Info")
     st.markdown("""
     * **Tidsbegrænsning**: Du kan højst booke et jagtområde **14 dage frem** i tiden.
     * **Kvoter**: Husk at registrere alt nedlagt vildt til bestyrelsen umiddelbart efter jagten.
     * **Gæster**: Hvis du har gæster med, skal det noteres i feltet ved oprettelse.
     * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
     """)
+
