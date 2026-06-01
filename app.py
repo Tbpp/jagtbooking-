@@ -7,11 +7,11 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE MED DIT NYE LINK ---
-SHEETDB_API_URL = "https://sheetdb.io/api/v1/11bgx9asa3yy1"
+# --- DATABASEFORBINDELSE TIL SHEETDB ---
+SHEETDB_API_URL = "https://sheetdb.io"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
-    """Skriver en ny booking direkte ind i jeres Google Sheet"""
+    """Skriver en ny jagtbooking ind i jeres Google Sheet (Ark1)"""
     payload = {
         "data": [{
             "noegle": str(noegle).strip(),
@@ -29,7 +29,7 @@ def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
         return False
 
 def aflyst_i_google_sheet(noegle):
-    """Sletter en booking live baseret på nøglen"""
+    """Sletter en jagtbooking live baseret på nøglen"""
     try:
         res = requests.delete(f"{SHEETDB_API_URL}/noegle/{noegle}")
         return res.status_code == 200
@@ -37,7 +37,7 @@ def aflyst_i_google_sheet(noegle):
         return False
 
 def hent_aktuelle_bookinger():
-    """Henter alle bookinger lynhurtigt og fejlfrit fra det nye sheet"""
+    """Henter alle jagtbookinger lynhurtigt fra det nye sheet"""
     try:
         res = requests.get(f"{SHEETDB_API_URL}?cache_buster={int(time.time())}")
         bookinger_dict = {}
@@ -59,8 +59,54 @@ def hent_aktuelle_bookinger():
     except:
         return {}
 
-# Indlæs altid de allernyeste bookinger live fra skyen ved opdatering
+# --- NYE FUNKTIONER TIL HYTTE-FANEN (LØSNING B) ---
+def send_hytte_til_google_sheet(noegle, jaeger_id, navn, dato):
+    """Skriver en ny hyttebooking ind i fanebladet hytte"""
+    payload = {
+        "data": [{
+            "noegle": str(noegle).strip(),
+            "jaeger_id": str(jaeger_id).strip(),
+            "navn": str(navn).strip(),
+            "dato": str(dato).strip()
+        }]
+    }
+    try:
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        res = requests.post(f"{SHEETDB_API_URL}?sheet=hytte", json=payload, headers=headers)
+        return res.status_code == 201
+    except:
+        return False
+
+def aflyst_hytte_i_google_sheet(noegle):
+    """Sletter en hyttebooking live fra hytte-fanen"""
+    try:
+        res = requests.delete(f"{SHEETDB_API_URL}/noegle/{noegle}?sheet=hytte")
+        return res.status_code == 200
+    except:
+        return False
+
+def hent_hytte_bookinger():
+    """Henter alle hyttebookinger live fra hytte-fanen"""
+    try:
+        res = requests.get(f"{SHEETDB_API_URL}?sheet=hytte&cache_buster={int(time.time())}")
+        hytte_dict = {}
+        if res.status_code == 200:
+            data = res.json()
+            if isinstance(data, list):
+                for række in data:
+                    if "noegle" in række and række["noegle"]:
+                        hytte_dict[str(række["noegle"]).strip()] = {
+                            "jaeger_id": int(række["jaeger_id"]) if "jaeger_id" in række and str(række["jaeger_id"]).isdigit() else 0,
+                            "navn": str(række["navn"]) if "navn" in række else "Ukendt",
+                            "dato": str(række["dato"]) if "dato" in række else ""
+                        }
+        return hytte_dict
+    except:
+        return {}
+
+# Indlæs altid de allernyeste data live fra skyen ved opdatering
 st.session_state.bookinger = hent_aktuelle_bookinger()
+st.session_state.hytte_bookinger = hent_hytte_bookinger()
 
 # --- STYLING OG BAGGRUND ---
 baggrunds_css = """
@@ -135,7 +181,7 @@ if st.sidebar.button("Log ud"):
     st.rerun()
 st.title("🌲 Ravnkjærgaard - Jagt & Hytte")
 
-# --- FANER (KONTAKT-FANEN ER FJERNET HENT) ---
+# --- FANER ---
 fane_book, fane_hytte, fane_tjek_dato, fane_fuld_oversigt, fane_regler_info = st.tabs([
     "🆕 Opret Jagtbooking", "🏠 Book Jagthytte", "🔍 Tjek Specifik Dato", "📅 Den Fulde Kalenderoversigt & Aflysning", "📜 Priser, Regler & Info"
 ])
@@ -174,11 +220,74 @@ with fane_book:
             else:
                 st.error("❌ Kunne ikke oprette forbindelse til databasen. Prøv igen.")
 
-# --- FANE 2: BOOK JAGTHYTTE ---
+# --- FANE 2: BOOK JAGTHYTTE (LØSNING B) ---
 with fane_hytte:
-    st.header("🏠 Booking af Jagthytten")
-    st.info("Denne funktion kan udvides med separat tabel i jeres sheet til overnatninger.")
-    st.write("Kontakt formanden eller brug det fælles notatfelt, hvis hytten ønskes reserveret til selskaber.")
+    st.header("🏠 Reserver Jagthytten til overnatning")
+    st.write("Her kan du booke hele hytten til overnatning eller arrangementer.")
+    
+    idag = datetime.today().date()
+    maks_hytte_dato = idag + timedelta(days=60) # Giver mulighed for at booke hytten 60 dage frem
+    
+    valgt_hytte_dato = st.date_input("Vælg dato for hytte-reservation:", min_value=idag, max_value=maks_hytte_dato, value=idag, key="hytte_dato_input")
+    hytte_noegle = f"hytte_{valgt_hytte_dato}"
+    
+    if st.button("Book hytten på denne dato", type="primary", key="hytte_book_knap"):
+        if hytte_noegle in st.session_state.hytte_bookinger:
+            st.error(f"❌ Jagthytten er allerede reserveret d. {valgt_hytte_dato} af {st.session_state.hytte_bookinger[hytte_noegle]['navn']}.")
+        else:
+            med_succes = send_hytte_til_google_sheet(
+                noegle=hytte_noegle,
+                jaeger_id=st.session_state.bruger_info["Nr"],
+                navn=st.session_state.bruger_info["Navn"],
+                dato=str(valgt_hytte_dato)
+            )
+            if med_succes:
+                st.success(f"🎉 Jagthytten er nu reserveret til dig d. {valgt_hytte_dato}!")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("❌ Kunne ikke oprette hyttebooking. Prøv igen.")
+                
+    st.write("---")
+    st.subheader("📅 Aktuelle reservationer af hytten")
+    
+    if not st.session_state.hytte_bookinger:
+        st.info("Der er i øjeblikket ingen reservationer af jagthytten.")
+    else:
+        hytte_liste = []
+        for noegle, info in st.session_state.hytte_bookinger.items():
+            hytte_liste.append({
+                "Nøgle": noegle,
+                "Navn": info["navn"],
+                "Reserveret dato": info["dato"],
+                "jaeger_id": info["jaeger_id"]
+            })
+        
+        df_hytte = pd.DataFrame(hytte_liste)
+        # Sorter efter dato, så det er nemt at læse
+        df_hytte = df_hytte.sort_value(by="Reserveret dato")
+        st.dataframe(df_hytte.drop(columns=["Nøgle", "jaeger_id"]), use_container_width=True, hide_index=True)
+        
+        # Mulighed for at aflyse sin egen hyttebooking
+        st.write("---")
+        st.subheader("🗑️ Aflys din hytte-reservation")
+        mine_hytte_bookinger = {k: v for k, v in st.session_state.hytte_bookinger.items() if v["jaeger_id"] == st.session_state.bruger_info["Nr"]}
+        
+        if not mine_hytte_bookinger:
+            st.write("Du har ingen aktive hytte-reservationer.")
+        else:
+            valgt_aflys_hytte = st.selectbox(
+                "Vælg den hytte-dato du vil aflyse:",
+                options=list(mine_hytte_bookinger.keys()),
+                format_func=lambda x: f"Dato: {mine_hytte_bookinger[x]['dato']}"
+            )
+            if st.button("Annuller hytte-reservation", type="secondary"):
+                if aflyst_hytte_i_google_sheet(valgt_aflys_hytte):
+                    st.success("🗑️ Din hytte-reservation er blevet slettet!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Kunne ikke slette reservationen. Prøv igen.")
 
 # --- FANE 3: TJEK SPECIFIK DATO ---
 with fane_tjek_dato:
@@ -250,6 +359,7 @@ with fane_regler_info:
     st.header("📜 Priser, Regler & Praktisk Info")
     st.markdown("""
     * **Tidsbegrænsning**: Du kan højst booke et jagtområde **14 dage frem** i tiden.
+    * **Hyttebooking**: Jagthytten kan reserveres helt op til **60 dage frem** i tiden.
     * **Kvoter**: Husk at registrere alt nedlagt vildt til bestyrelsen umiddelbart efter jagten.
     * **Gæster**: Hvis du har gæster med, skal det noteres i feltet ved oprettelse.
     * **Aflysning**: Slet din booking i god tid, hvis du bliver forhindret, så en anden kan få pladsen.
