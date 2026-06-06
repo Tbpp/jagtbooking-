@@ -7,8 +7,8 @@ import time
 # 1. Konfiguration af hjemmesiden
 st.set_page_config(page_title="Ravnkjærgaard - Jagtbooking", page_icon="🌲", layout="centered")
 
-# --- DATABASEFORBINDELSE TIL DIT HELT NYE SHEET ---
-SHEETDB_API_URL = "https://sheetdb.io"
+# --- OPPDATERET DATABASEFORBINDELSE TIL DIT NYE SHEET ---
+SHEETDB_API_URL = "https://sheetdb.io/api/v1/586zzfgt2797k"
 
 def send_til_google_sheet(noegle, jaeger_id, navn, tidspunkt, notat):
     """Skriver en ny jagtbooking ind i jeres Google Sheet (Ark1)"""
@@ -219,7 +219,7 @@ with fane_book:
     
     valgt_omraade_id = st.selectbox("Vælg jagtområde:", options=list(st.session_state.omraader.keys()), format_func=lambda x: st.session_state.omraader[x])
     idag = datetime.today().date()
-    maks_dato = idags = idag + timedelta(days=14)
+    maks_dato = idag + timedelta(days=14)
     valgt_dato = st.date_input("Vælg dato for jagten (Maks 14 dage frem):", min_value=idag, max_value=maks_dato, value=idag)
     valgt_tidspunkt = st.radio("Vælg tidspunkt:", ["Morgen", "Aften"])
     bruger_notat = st.text_input("Evt. notat (f.eks. 'Gæst med', 'Rifeljagt'):", value="-")
@@ -331,7 +331,7 @@ with fane_fuld_oversigt:
                 else:
                     st.error("Fejl ved aflysning.")
     else:
-        st.write("Du har aucune aktive jagtbookinger.")
+        st.write("Du har ingen aktive jagtbookinger.")
         
     egne_hytter = {k: v for k, v in st.session_state.hytte_bookinger.items() if v["navn"] == bruger_navn}
     if egne_hytter:
